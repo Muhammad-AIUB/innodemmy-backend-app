@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call */
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
@@ -22,6 +21,6 @@ export class SignupTokenStrategy extends PassportStrategy(
     if (payload.purpose !== 'complete-signup') {
       throw new UnauthorizedException('Invalid token purpose');
     }
-    return { email: payload.email }; // এই ইমেইলটা complete-signup এ ব্যবহার হবে
+    return { email: payload.email };
   }
 }

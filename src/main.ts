@@ -15,7 +15,6 @@ async function bootstrap() {
       new FastifyAdapter({ logger: true }),
     );
 
-    // Basic rate limiting
     await app.register(rateLimit, {
       max: 5,
       timeWindow: '1 minute',
@@ -23,7 +22,6 @@ async function bootstrap() {
       keyGenerator: (req) => req.ip ?? req.headers['x-forwarded-for'],
     });
 
-    // Global Pipes
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
@@ -34,15 +32,6 @@ async function bootstrap() {
 
     app.enableCors();
     console.log('✅ CORS enabled');
-
-    // Swagger setup - disabled for Fastify compatibility
-    // Uncomment after server starts successfully
-    // try {
-    //   setupSwagger(app);
-    //   console.log('✅ Swagger setup complete');
-    // } catch (swaggerError) {
-    //   console.warn('⚠️ Swagger setup error (continuing anyway):', swaggerError);
-    // }
 
     console.log('🚀 Starting server on port 3000...');
     try {

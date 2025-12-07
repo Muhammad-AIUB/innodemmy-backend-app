@@ -18,6 +18,4 @@ export class CompleteSignupDto {
   @ApiProperty({ example: 'Pass@1234' })
   @IsNotEmpty()
   confirmPassword: string;
-
-  // Custom validation পরে pipe এ করব
 }

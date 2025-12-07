@@ -1,4 +1,3 @@
-// কেন এভাবে করলাম? → TypeORM + PostgreSQL এর জন্য সবচেয়ে প্রফেশনাল উপায়
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -15,7 +14,7 @@ export enum UserRole {
 }
 
 @Entity('users')
-@Index(['email'], { unique: true }) // ডুপ্লিকেট ইমেইল ব্লক করার জন্য
+@Index(['email'], { unique: true })
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -27,7 +26,7 @@ export class User {
   email: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  @Exclude() // API response এ পাসওয়ার্ড কখনো যাবে না
+  @Exclude()
   password: string;
 
   @Column({ type: 'varchar', length: 20, nullable: true })

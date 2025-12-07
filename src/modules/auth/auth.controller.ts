@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
@@ -31,7 +30,7 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Step 3: Set password & complete registration' })
   async completeSignup(@Request() req, @Body() dto: CompleteSignupDto) {
-    const email = req.user.email; // signup-token থেকে আসবে
+    const email = req.user.email;
     return this.authService.completeSignup(email, dto);
   }
 }

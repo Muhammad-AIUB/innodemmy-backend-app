@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 import {
   Injectable,
   BadRequestException,
@@ -23,7 +22,6 @@ export class AuthService {
     private readonly mailService: MailService,
   ) {}
 
-  // Step 1: Send OTP
   async sendOtp(email: string): Promise<{ message: string; otp?: string }> {
     const count = await this.redisService.incrementOtpCount(email);
     if (count > 3) throw new BadRequestException('Too many attempts');
@@ -32,10 +30,8 @@ export class AuthService {
     await this.redisService.setOtp(email, otp);
     await this.mailService.sendOtp(email, otp);
 
-    // Development mode: OTP console এ print করো
     console.log(`🔐 OTP for ${email}: ${otp}`);
 
-    // Development-এ response-এ OTP দাও
     if (process.env.NODE_ENV !== 'production') {
       return { message: 'OTP sent successfully', otp };
     }
@@ -43,7 +39,6 @@ export class AuthService {
     return { message: 'OTP sent successfully' };
   }
 
-  // Step 2: Verify OTP → temporary token
   async verifyOtp(
     email: string,
     otp: string,
@@ -53,19 +48,16 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired OTP');
     }
 
-    // OTP ম্যাচ → temporary token দে (১৫ মিনিট)
     const signupToken = this.jwtService.sign(
       { email, purpose: 'complete-signup' },
       { expiresIn: '15m' },
     );
 
-    // OTP ডিলিট করে দে (একবারই ব্যবহার হবে)
     await this.redisService.deleteOtp(email);
 
     return { signupToken };
   }
 
-  // Step 3: Complete signup
   async completeSignup(
     email: string,
     dto: CompleteSignupDto,

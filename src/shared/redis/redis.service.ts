@@ -9,9 +9,8 @@ export class RedisService {
     this.redis = new Redis();
   }
 
-  // OTP সেভ করা (৫ মিনিট TTL)
   async setOtp(email: string, otp: string): Promise<void> {
-    await this.redis.setex(`otp:${email}`, 300, otp); // 300 sec = 5 min
+    await this.redis.setex(`otp:${email}`, 300, otp);
   }
 
   async getOtp(email: string): Promise<string | null> {
@@ -22,11 +21,10 @@ export class RedisService {
     await this.redis.del(`otp:${email}`);
   }
 
-  // Rate limiting (এক ইমেইলে ১ মিনিটে ৩ বারের বেশি OTP না)
   async incrementOtpCount(email: string): Promise<number> {
     const key = `otp_count:${email}`;
     const count = await this.redis.incr(key);
-    if (count === 1) await this.redis.expire(key, 60); // ১ মিনিট
+    if (count === 1) await this.redis.expire(key, 60);
     return count;
   }
 }

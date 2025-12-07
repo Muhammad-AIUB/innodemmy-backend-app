@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import { config } from 'dotenv';
 import { User } from '../modules/auth/entities/user.entity';
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call
 config();
 
 const configService = new ConfigService();

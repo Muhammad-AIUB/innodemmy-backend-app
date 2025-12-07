@@ -10,7 +10,6 @@ export class MailService {
     @InjectQueue('email') private emailQueue: Queue,
   ) {}
 
-  // OTP ইমেইল পাঠানো (Queue-তে দিয়ে দিব)
   async sendOtp(email: string, otp: string) {
     const html = `
       <div style="font-family: Arial; text-align: center; padding: 30px; background: #f4f4f4;">
@@ -27,6 +26,4 @@ export class MailService {
       html,
     });
   }
-
-  // অন্য ইমেইলও একইভাবে পাঠাবি
 }
