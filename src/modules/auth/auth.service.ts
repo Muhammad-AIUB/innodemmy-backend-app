@@ -125,9 +125,7 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
     // Get Google user info from Redis or query (you can store it)
-    const googleInfo = await this.redisService.get(
-      `google-signup-${googleId}`,
-    );
+    const googleInfo = await this.redisService.get(`google-signup-${googleId}`);
     const parsedGoogleInfo = googleInfo ? JSON.parse(googleInfo) : {};
 
     // Create user
@@ -265,10 +263,7 @@ export class AuthService {
     }
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(
-      dto.password,
-      user.password,
-    );
+    const isPasswordValid = await bcrypt.compare(dto.password, user.password);
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid email/name or password');

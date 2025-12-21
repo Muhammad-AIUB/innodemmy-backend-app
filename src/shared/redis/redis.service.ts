@@ -9,8 +9,9 @@ export class RedisService {
     this.redis = new Redis();
   }
 
-  async setOtp(email: string, otp: string): Promise<void> {
-    await this.redis.setex(`otp:${email}`, 300, otp);
+  async setOtp(email: string, otp: string, ttl?: number): Promise<void> {
+    const expiry = ttl || 300; // Default 5 minutes
+    await this.redis.setex(`otp:${email}`, expiry, otp);
   }
 
   async getOtp(email: string): Promise<string | null> {
@@ -26,5 +27,21 @@ export class RedisService {
     const count = await this.redis.incr(key);
     if (count === 1) await this.redis.expire(key, 60);
     return count;
+  }
+
+  async set(key: string, value: string, ttl?: number): Promise<void> {
+    if (ttl) {
+      await this.redis.setex(key, ttl, value);
+    } else {
+      await this.redis.set(key, value);
+    }
+  }
+
+  async get(key: string): Promise<string | null> {
+    return this.redis.get(key);
+  }
+
+  async delete(key: string): Promise<void> {
+    await this.redis.del(key);
   }
 }
