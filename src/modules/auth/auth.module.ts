@@ -11,6 +11,7 @@ import { RedisService } from '../../shared/redis/redis.service';
 import { MailService } from '../../shared/mail/mail.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { SignupTokenStrategy } from './strategies/signup-token.strategy';
+import { GoogleStrategy } from './strategies/google.strategy';
 
 @Module({
   imports: [
@@ -33,7 +34,9 @@ import { SignupTokenStrategy } from './strategies/signup-token.strategy';
     MailService,
     JwtStrategy,
     SignupTokenStrategy,
+    GoogleStrategy,
   ],
   exports: [AuthService],
 })
 export class AuthModule {}
+

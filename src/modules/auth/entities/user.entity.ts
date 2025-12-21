@@ -15,11 +15,12 @@ export enum UserRole {
 
 @Entity('users')
 @Index(['email'], { unique: true })
+@Index(['googleId'], { unique: true, where: '"googleId" IS NOT NULL' })
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   name: string;
 
   @Column({ type: 'varchar', length: 255 })
@@ -32,6 +33,15 @@ export class User {
   @Column({ type: 'varchar', length: 20, nullable: true })
   phone: string;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  googleId: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  googleEmail: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  googleName: string;
+
   @Column({
     type: 'enum',
     enum: UserRole,
@@ -41,6 +51,9 @@ export class User {
 
   @Column({ type: 'boolean', default: false })
   isVerified: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  isGoogleSignup: boolean;
 
   @CreateDateColumn()
   createdAt: Date;
