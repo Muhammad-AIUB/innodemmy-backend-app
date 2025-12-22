@@ -51,7 +51,7 @@ export class AuthService {
         googleName,
         purpose: 'google-signup',
       },
-      { expiresIn: '30m' },
+      { expiresIn: '30m' } as any,
     );
 
     return { googleToken };
@@ -193,7 +193,7 @@ export class AuthService {
 
     const signupToken = this.jwtService.sign(
       { email, purpose: 'complete-signup' },
-      { expiresIn: '15m' },
+      { expiresIn: '15m' } as any,
     );
 
     await this.redisService.deleteOtp(email);
@@ -356,7 +356,7 @@ export class AuthService {
       },
       {
         expiresIn: '15m',
-      },
+      } as any,
     );
 
     // Generate refresh token (7 days)
@@ -369,7 +369,7 @@ export class AuthService {
       {
         secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
         expiresIn: '7d',
-      },
+      } as any,
     );
 
     // Store refresh token in Redis (7 days)
