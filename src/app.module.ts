@@ -18,36 +18,72 @@ import { RolesGuard } from './common/guards/roles.guard';
 
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres' as const,
-        url: configService.get('DATABASE_URL'),
-        autoLoadEntities: true,
-        synchronize: false, // Disabled - use migrations instead
-        migrations: ['dist/migrations/*.js'],
-        migrationsRun: true, // Run migrations automatically on startup
-        logging: configService.get('NODE_ENV') === 'development',
-        extra: {
-          max: 20, // Maximum connections in pool
-          min: 5, // Minimum connections in pool
-          connectionTimeoutMillis: 5000,
-          idleTimeoutMillis: 30000,
-          maxUses: 7500,
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const isServerless = process.env.VERCEL === '1' || process.env.IS_SERVERLESS === 'true';
+        return {
+          type: 'postgres' as const,
+          url: configService.get('DATABASE_URL'),
+          autoLoadEntities: true,
+          synchronize: false, // Disabled - use migrations instead
+          migrations: ['dist/migrations/*.js'],
+          // Disable migrationsRun in serverless (run manually via CLI)
+          migrationsRun: !isServerless && configService.get('NODE_ENV') !== 'production',
+          logging: configService.get('NODE_ENV') === 'development',
+          extra: {
+            // Serverless-optimized connection pooling
+            max: isServerless ? 1 : 20, // Single connection for serverless
+            min: isServerless ? 0 : 5, // No minimum for serverless
+            connectionTimeoutMillis: isServerless ? 10000 : 5000,
+            idleTimeoutMillis: isServerless ? 10000 : 30000,
+            maxUses: isServerless ? 1 : 7500, // Single use for serverless
+            // SSL required for most cloud databases
+            ssl: configService.get('DATABASE_SSL') === 'true' ? { rejectUnauthorized: false } : false,
+          },
+        };
+      },
       inject: [ConfigService],
     }),
 
     RedisModule.forRoot({
       config: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: +(process.env.REDIS_PORT || 6379),
+        // Support Redis URL (for Upstash, Redis Cloud, etc.) or host/port
+        ...(process.env.REDIS_URL
+          ? { url: process.env.REDIS_URL }
+          : {
+              host: process.env.REDIS_HOST || 'localhost',
+              port: +(process.env.REDIS_PORT || 6379),
+            }),
+        // TLS/SSL for cloud Redis
+        ...(process.env.REDIS_TLS === 'true' && {
+          tls: {
+            rejectUnauthorized: false,
+          },
+        }),
+        // Connection retry for serverless
+        retryStrategy: (times: number) => {
+          if (times > 3) return null;
+          return Math.min(times * 50, 2000);
+        },
+        maxRetriesPerRequest: 3,
       },
     }),
 
     BullModule.forRoot({
       connection: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: +(process.env.REDIS_PORT || 6379),
+        // Support Redis URL (for Upstash, Redis Cloud, etc.) or host/port
+        ...(process.env.REDIS_URL
+          ? { url: process.env.REDIS_URL }
+          : {
+              host: process.env.REDIS_HOST || 'localhost',
+              port: +(process.env.REDIS_PORT || 6379),
+            }),
+        // TLS/SSL for cloud Redis
+        ...(process.env.REDIS_TLS === 'true' && {
+          tls: {
+            rejectUnauthorized: false,
+          },
+        }),
+        maxRetriesPerRequest: 3,
       },
     }),
 

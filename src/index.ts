@@ -19,10 +19,13 @@ async function bootstrap() {
     const fastifyInstance = app.getHttpAdapter().getInstance();
 
     // Add Express-compatible methods to Fastify reply
-    fastifyInstance.decorateReply('setHeader', function (name: string, value: unknown) {
-      this.header(name, value);
-      return this;
-    });
+    fastifyInstance.decorateReply(
+      'setHeader',
+      function (name: string, value: unknown) {
+        this.header(name, value);
+        return this;
+      },
+    );
     fastifyInstance.decorateReply('end', function () {
       this.send('');
       return this;
@@ -68,6 +71,9 @@ async function bootstrap() {
     });
     console.log('✅ CORS enabled');
 
+    // Setup Swagger documentation
+    setupSwagger(app);
+
     // Graceful shutdown
     const gracefulShutdown = async (signal: string) => {
       console.log(`\n${signal} received. Starting graceful shutdown...`);
@@ -81,8 +87,12 @@ async function bootstrap() {
       }
     };
 
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+    process.on('SIGTERM', () => {
+      void gracefulShutdown('SIGTERM');
+    });
+    process.on('SIGINT', () => {
+      void gracefulShutdown('SIGINT');
+    });
 
     const port = process.env.PORT || 3000;
     const host = process.env.HOST || '0.0.0.0';
