@@ -41,4 +41,3 @@ export class Course {
   @UpdateDateColumn()
   updatedAt: Date;
 }
-
