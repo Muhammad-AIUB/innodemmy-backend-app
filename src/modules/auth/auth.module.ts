@@ -7,15 +7,17 @@ import { BullModule } from '@nestjs/bullmq';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { User } from './entities/user.entity';
+import { RefreshToken } from './entities/refresh-token.entity';
 import { RedisService } from '../../shared/redis/redis.service';
 import { MailService } from '../../shared/mail/mail.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { SignupTokenStrategy } from './strategies/signup-token.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { GoogleTokenStrategy } from './strategies/google-token.strategy';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, RefreshToken]),
     PassportModule,
     BullModule.registerQueue({ name: 'email' }),
     JwtModule.registerAsync({
@@ -35,6 +37,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
     JwtStrategy,
     SignupTokenStrategy,
     GoogleStrategy,
+    GoogleTokenStrategy,
   ],
   exports: [AuthService],
 })

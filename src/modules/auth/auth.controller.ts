@@ -18,13 +18,17 @@ import { AddEmailDto } from './dto/add-email.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { GoogleCompleteSignupDto } from './dto/google-complete-signup.dto';
 import { LoginDto } from './dto/login.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { SignupTokenGuard } from './guards/signup-token.guard';
 import { GoogleOAuthGuard } from './guards/google-oauth.guard';
+import { GoogleTokenGuard } from './guards/google-token.guard';
 
 interface AuthenticatedUser {
   email?: string;
   googleId?: string;
+  googleEmail?: string;
+  googleName?: string;
   id?: string;
   role?: string;
 }
@@ -70,24 +74,21 @@ export class AuthController {
   }
 
   @Post('google/add-email')
+  @UseGuards(GoogleTokenGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Step 2: After Google Auth, add email' })
   async addEmailAfterGoogle(
     @Request() req: AuthenticatedRequest,
     @Body() dto: AddEmailDto,
   ) {
-    const googleId =
-      req.user?.googleId ||
-      (typeof req.headers['x-google-id'] === 'string'
-        ? req.headers['x-google-id']
-        : undefined);
-    if (!googleId) {
-      throw new Error('Google ID is required');
+    if (!req.user?.googleId) {
+      throw new HttpException('Google ID is required', HttpStatus.UNAUTHORIZED);
     }
-    return this.authService.addEmailAfterGoogle(googleId, dto.email);
+    return this.authService.addEmailAfterGoogle(req.user.googleId, dto.email);
   }
 
   @Post('google/verify-email')
+  @UseGuards(GoogleTokenGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Step 3: Verify email code from Google flow' })
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -100,6 +101,7 @@ export class AuthController {
   }
 
   @Post('google/complete-signup')
+  @UseGuards(GoogleTokenGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Step 4: Create account with password' })
   async completeGoogleSignup(
@@ -108,6 +110,7 @@ export class AuthController {
   ) {
     const email =
       req.user?.email ||
+      req.user?.googleEmail ||
       (typeof req.headers['x-user-email'] === 'string'
         ? req.headers['x-user-email']
         : undefined);
@@ -117,7 +120,10 @@ export class AuthController {
         : undefined;
 
     if (!email || !code) {
-      throw new Error('Email and verification code are required');
+      throw new HttpException(
+        'Email and verification code are required',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     return this.authService.verifyEmailAndCompleteGoogleSignup(
@@ -160,7 +166,44 @@ export class AuthController {
   @ApiOperation({
     summary: 'Login with email/fullName + password',
   })
-  async login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  async login(@Request() req: AuthenticatedRequest, @Body() dto: LoginDto) {
+    const userAgent = req.headers['user-agent'] || undefined;
+    const ipAddress =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0] ||
+      req.ip ||
+      undefined;
+    return this.authService.login(dto, userAgent, ipAddress);
+  }
+
+  // ===== Refresh Token =====
+  @Post('refresh')
+  @ApiOperation({
+    summary: 'Refresh access token using refresh token',
+  })
+  async refreshToken(@Body() dto: RefreshTokenDto) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
+      return await this.authService.refreshAccessToken(dto.refreshToken);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Token refresh failed';
+      throw new HttpException(message, HttpStatus.UNAUTHORIZED);
+    }
+  }
+
+  @Post('logout')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Logout and revoke refresh token',
+  })
+  async logout(@Body() dto: RefreshTokenDto) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      await this.authService.revokeRefreshToken(dto.refreshToken);
+      return { message: 'Logged out successfully' };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Logout failed';
+      throw new HttpException(message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 }

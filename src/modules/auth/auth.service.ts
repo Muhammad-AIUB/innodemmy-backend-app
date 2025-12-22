@@ -104,7 +104,11 @@ export class AuthService {
     email: string,
     code: string,
     dto: GoogleCompleteSignupDto,
-  ): Promise<{ accessToken: string; user: Partial<User> }> {
+  ): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    user: Partial<User>;
+  }> {
     // Verify code
     const storedData = await this.redisService.getOtp(`google-email-${email}`);
     if (!storedData) {
@@ -146,15 +150,11 @@ export class AuthService {
     await this.redisService.delete(`google-email-${email}`);
     await this.redisService.delete(`google-signup-${googleId}`);
 
-    // Generate access token
-    const accessToken = this.jwtService.sign({
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    });
+    // Generate tokens
+    const tokens = await this.generateTokens(user.id);
 
     return {
-      accessToken,
+      ...tokens,
       user: {
         id: user.id,
         email: user.email,
@@ -204,7 +204,11 @@ export class AuthService {
   async completeSignup(
     email: string,
     dto: CompleteSignupDto,
-  ): Promise<{ accessToken: string; user: Partial<User> }> {
+  ): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    user: Partial<User>;
+  }> {
     if (dto.password !== dto.confirmPassword) {
       throw new BadRequestException('Passwords do not match');
     }
@@ -226,14 +230,10 @@ export class AuthService {
 
     await this.userRepo.save(user);
 
-    const accessToken = this.jwtService.sign({
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    });
+    const tokens = await this.generateTokens(user.id);
 
     return {
-      accessToken,
+      ...tokens,
       user: {
         id: user.id,
         email: user.email,
@@ -246,7 +246,13 @@ export class AuthService {
   // ===== Login =====
   async login(
     dto: LoginDto,
-  ): Promise<{ accessToken: string; user: Partial<User> }> {
+    userAgent?: string,
+    ipAddress?: string,
+  ): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    user: Partial<User>;
+  }> {
     // Find by email or name
     const user = await this.userRepo.findOne({
       where: [{ email: dto.emailOrName }, { name: dto.emailOrName }],
@@ -269,15 +275,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email/name or password');
     }
 
-    // Generate access token
-    const accessToken = this.jwtService.sign({
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    });
+    // Generate tokens
+    const tokens = await this.generateTokens(user.id, userAgent, ipAddress);
 
     return {
-      accessToken,
+      ...tokens,
       user: {
         id: user.id,
         email: user.email,
@@ -285,5 +287,94 @@ export class AuthService {
         role: user.role,
       },
     };
+  }
+
+  // ===== Refresh Token Flow =====
+  async refreshAccessToken(
+    refreshToken: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    // Verify refresh token
+    let payload: { sub: string; jti: string };
+    try {
+      payload = this.jwtService.verify(refreshToken, {
+        secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+      });
+    } catch (error) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    // Check if token exists in database and is active
+    const tokenRecord = await this.redisService.get(
+      `refresh_token:${payload.jti}`,
+    );
+    if (!tokenRecord || tokenRecord !== 'active') {
+      throw new UnauthorizedException('Refresh token not found or revoked');
+    }
+
+    // Get user
+    const user = await this.userRepo.findOne({
+      where: { id: payload.sub },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Generate new tokens
+    return this.generateTokens(user.id);
+  }
+
+  async revokeRefreshToken(refreshToken: string): Promise<void> {
+    try {
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+      });
+      await this.redisService.delete(`refresh_token:${payload.jti}`);
+    } catch (error) {
+      // Token already invalid, ignore
+    }
+  }
+
+  private async generateTokens(
+    userId: string,
+    userAgent?: string,
+    ipAddress?: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    const jti = `${userId}-${Date.now()}-${Math.random()}`;
+
+    // Generate access token (15 minutes)
+    const accessToken = this.jwtService.sign(
+      {
+        sub: user.id,
+        email: user.email,
+        role: user.role,
+      },
+      {
+        expiresIn: '15m',
+      },
+    );
+
+    // Generate refresh token (7 days)
+    const refreshToken = this.jwtService.sign(
+      {
+        sub: user.id,
+        jti,
+        type: 'refresh',
+      },
+      {
+        secret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+        expiresIn: '7d',
+      },
+    );
+
+    // Store refresh token in Redis (7 days)
+    await this.redisService.set(`refresh_token:${jti}`, 'active', 7 * 24 * 3600);
+
+    return { accessToken, refreshToken };
   }
 }

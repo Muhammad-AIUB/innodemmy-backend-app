@@ -49,16 +49,66 @@ async function bootstrap() {
       }),
     );
 
-    app.enableCors();
+    // Strict CORS configuration for production
+    const allowedOrigins = process.env.ALLOWED_ORIGINS
+      ? process.env.ALLOWED_ORIGINS.split(',')
+      : ['http://localhost:3000', 'http://localhost:3001'];
+
+    app.enableCors({
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'), false);
+        }
+      },
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+    });
     console.log('✅ CORS enabled');
 
-    console.log('🚀 Starting server on port 3000...');
+    // Graceful shutdown
+    const gracefulShutdown = async (signal: string) => {
+      console.log(`\n${signal} received. Starting graceful shutdown...`);
+      try {
+        await app.close();
+        console.log('✅ Application closed successfully');
+        process.exit(0);
+      } catch (error) {
+        console.error('❌ Error during shutdown:', error);
+        process.exit(1);
+      }
+    };
+
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+    const port = process.env.PORT || 3000;
+    const host = process.env.HOST || '0.0.0.0';
+
+    console.log(`🚀 Starting server on ${host}:${port}...`);
     try {
-      await app.listen(3000, '0.0.0.0');
-      console.log('✅ Application is running on: http://0.0.0.0:3000');
-      console.log('✅ Swagger Docs: http://0.0.0.0:3000/api');
-    } catch (listenError) {
-      console.error('❌ Error starting server:', listenError);
+      await app.listen(port, host);
+      console.log(`✅ Application is running on: http://${host}:${port}`);
+      console.log(`✅ Swagger Docs: http://${host}:${port}/api`);
+      console.log(`✅ Health Check: http://${host}:${port}/health`);
+    } catch (listenError: unknown) {
+      if (
+        listenError &&
+        typeof listenError === 'object' &&
+        'code' in listenError &&
+        listenError.code === 'EADDRINUSE'
+      ) {
+        console.error(
+          `❌ Port ${port} is already in use. Please:\n` +
+            `   1. Kill the process using port ${port}: netstat -ano | findstr :${port}\n` +
+            `   2. Or use a different port: PORT=3001 pnpm run start:dev\n` +
+            `   3. Or restart your terminal/IDE`,
+        );
+      } else {
+        console.error('❌ Error starting server:', listenError);
+      }
       throw listenError;
     }
   } catch (error) {
