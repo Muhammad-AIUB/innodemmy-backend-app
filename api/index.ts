@@ -16,12 +16,17 @@ async function createApp() {
     return { app, fastifyInstance };
   }
 
-  app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
-    new FastifyAdapter({
-      logger: false, // Disable logger in serverless
-    }),
-  );
+  try {
+    app = await NestFactory.create<NestFastifyApplication>(
+      AppModule,
+      new FastifyAdapter({
+        logger: false, // Disable logger in serverless
+      }),
+    );
+  } catch (error) {
+    console.error('Failed to create NestJS app:', error);
+    throw error;
+  }
 
   // Decorate Fastify reply with Express-compatible methods for Passport compatibility
   fastifyInstance = app.getHttpAdapter().getInstance();
@@ -76,8 +81,13 @@ async function createApp() {
   // Setup Swagger documentation
   setupSwagger(app);
 
-  await app.init();
-  await fastifyInstance.ready();
+  try {
+    await app.init();
+    await fastifyInstance.ready();
+  } catch (error) {
+    console.error('Failed to initialize app:', error);
+    throw error;
+  }
 
   return { app, fastifyInstance };
 }
@@ -86,10 +96,18 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse,
 ) {
-  const { fastifyInstance: instance } = await createApp();
+  try {
+    const { fastifyInstance: instance } = await createApp();
 
-  // Vercel provides Node.js-compatible IncomingMessage and ServerResponse
-  // Fastify can handle these directly via its HTTP server
-  instance.server.emit('request', req, res);
+    // Vercel provides Node.js-compatible IncomingMessage and ServerResponse
+    // Fastify can handle these directly via its HTTP server
+    instance.server.emit('request', req, res);
+  } catch (error) {
+    console.error('Handler error:', error);
+    res.status(500).json({
+      message: 'Internal server error',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
 }
 
