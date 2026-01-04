@@ -29,7 +29,7 @@ export class AuthService {
     const { googleId, googleEmail, googleName } = profile;
 
     // Check if user already exists
-    let user = await this.userRepo.findOne({
+    const user = await this.userRepo.findOne({
       where: { googleId },
     });
 
@@ -373,7 +373,11 @@ export class AuthService {
     );
 
     // Store refresh token in Redis (7 days)
-    await this.redisService.set(`refresh_token:${jti}`, 'active', 7 * 24 * 3600);
+    await this.redisService.set(
+      `refresh_token:${jti}`,
+      'active',
+      7 * 24 * 3600,
+    );
 
     return { accessToken, refreshToken };
   }

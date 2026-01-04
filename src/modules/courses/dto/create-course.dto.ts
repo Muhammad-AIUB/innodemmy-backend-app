@@ -16,7 +16,10 @@ export enum CourseLevel {
 }
 
 export class CreateCourseDto {
-  @ApiProperty({ description: 'Course title', example: 'Introduction to NestJS' })
+  @ApiProperty({
+    description: 'Course title',
+    example: 'Introduction to NestJS',
+  })
   @IsString()
   @IsNotEmpty()
   title: string;
@@ -82,4 +85,3 @@ export class CreateCourseDto {
   @IsOptional()
   isPublished?: boolean;
 }
-

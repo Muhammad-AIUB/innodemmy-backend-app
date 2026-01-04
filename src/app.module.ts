@@ -19,25 +19,24 @@ import { RolesGuard } from './common/guards/roles.guard';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
-        const isServerless = process.env.VERCEL === '1' || process.env.IS_SERVERLESS === 'true';
         return {
           type: 'postgres' as const,
-          url: configService.get('DATABASE_URL'),
+          url: configService.getOrThrow<string>('DATABASE_URL'),
           autoLoadEntities: true,
-          synchronize: false, // Disabled - use migrations instead
+          synchronize: false,
           migrations: ['dist/migrations/*.js'],
-          // Disable migrationsRun in serverless (run manually via CLI)
-          migrationsRun: !isServerless && configService.get('NODE_ENV') !== 'production',
-          logging: configService.get('NODE_ENV') === 'development',
+          migrationsRun: configService.get<string>('NODE_ENV') !== 'production',
+          logging: configService.get<string>('NODE_ENV') === 'development',
           extra: {
-            // Serverless-optimized connection pooling
-            max: isServerless ? 1 : 20, // Single connection for serverless
-            min: isServerless ? 0 : 5, // No minimum for serverless
-            connectionTimeoutMillis: isServerless ? 10000 : 5000,
-            idleTimeoutMillis: isServerless ? 10000 : 30000,
-            maxUses: isServerless ? 1 : 7500, // Single use for serverless
-            // SSL required for most cloud databases
-            ssl: configService.get('DATABASE_SSL') === 'true' ? { rejectUnauthorized: false } : false,
+            max: 20,
+            min: 5,
+            connectionTimeoutMillis: 5000,
+            idleTimeoutMillis: 30000,
+            maxUses: 7500,
+            ssl:
+              configService.get<string>('DATABASE_SSL') === 'true'
+                ? { rejectUnauthorized: false }
+                : false,
           },
         };
       },

@@ -80,4 +80,3 @@ export class CreateCoursesTable1734879600000 implements MigrationInterface {
     await queryRunner.dropTable('courses');
   }
 }
-

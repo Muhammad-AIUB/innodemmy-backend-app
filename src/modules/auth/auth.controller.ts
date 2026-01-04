@@ -182,7 +182,6 @@ export class AuthController {
   })
   async refreshToken(@Body() dto: RefreshTokenDto) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-call
       return await this.authService.refreshAccessToken(dto.refreshToken);
     } catch (error) {
       const message =
@@ -198,7 +197,6 @@ export class AuthController {
   })
   async logout(@Body() dto: RefreshTokenDto) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
       await this.authService.revokeRefreshToken(dto.refreshToken);
       return { message: 'Logged out successfully' };
     } catch (error) {
