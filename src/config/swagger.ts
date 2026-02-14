@@ -3,10 +3,9 @@ import { NestFastifyApplication } from '@nestjs/platform-fastify';
 
 export const setupSwagger = (app: NestFastifyApplication) => {
   const config = new DocumentBuilder()
-    .setTitle('LMS Backend API')
-    .setDescription('Professional Learning Management System')
+    .setTitle('Webinar API')
+    .setDescription('Webinar management service')
     .setVersion('1.0')
-    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

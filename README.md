@@ -1,6 +1,18 @@
-# 🚀 Innodemmy - Learning Resource Management System
+# Webinar service (clean-architecture, Prisma + NestJS)
 
-> **High-performance NestJS backend** with **Fastify** adapter, **OTP-based email verification**, and **production-ready security** features.
+> **This repository has been restructured to a single, production-ready `Webinar` service** implemented with **NestJS + Fastify** and **Prisma (Postgres)**. All legacy modules (auth, courses, TypeORM migrations) have been removed from the runtime.
+
+**Quick start & migration commands**
+
+- Install: `pnpm install`
+- Generate Prisma client: `pnpm prisma:generate`
+- Create/migrate DB (dev): `pnpm prisma:migrate dev --name init`
+- Apply migrations (prod): `pnpm prisma:migrate deploy`
+- Run dev server: `pnpm run start:dev`
+
+---
+
+> **Original project details were archived** — the codebase now focuses only on `Webinar` functionality with a clean, extensible architecture.
 
 > ⚠️ **Note:** This project is currently under active development. Authentication system is complete and production-ready. Additional LMS features (course management, enrollment, analytics) are being implemented.
 

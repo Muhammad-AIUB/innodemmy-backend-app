@@ -15,27 +15,8 @@ async function bootstrap() {
       new FastifyAdapter({ logger: true }),
     );
 
-    // Decorate Fastify reply with Express-compatible methods for Passport compatibility
+    // Fastify is used as the HTTP engine; removed passport/express compatibility code (not needed for Webinar-only service)
     const fastifyInstance = app.getHttpAdapter().getInstance();
-
-    // Add Express-compatible methods to Fastify reply
-    fastifyInstance.decorateReply(
-      'setHeader',
-      function (name: string, value: unknown) {
-        this.header(name, value);
-        return this;
-      },
-    );
-    fastifyInstance.decorateReply('end', function () {
-      this.send('');
-      return this;
-    });
-
-    // Attach response to request object (Express-style) for Passport compatibility
-    fastifyInstance.addHook('onRequest', async (request, reply) => {
-      // Attach reply to request as 'res' (Express-style) for Passport
-      (request as unknown as { res: typeof reply }).res = reply;
-    });
 
     await app.register(rateLimit, {
       max: 5,
