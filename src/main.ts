@@ -15,8 +15,7 @@ async function bootstrap() {
       new FastifyAdapter({ logger: true }),
     );
 
-    // Fastify is used as the HTTP engine; removed passport/express compatibility code (not needed for Webinar-only service)
-    const fastifyInstance = app.getHttpAdapter().getInstance();
+    // Fastify is used as the HTTP engine
 
     await app.register(rateLimit, {
       max: 5,

@@ -6,7 +6,11 @@ import { PrismaModule } from './shared/prisma/prisma.module';
 import { WebinarsModule } from './modules/webinars/webinars.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, WebinarsModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,
+    WebinarsModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -8,7 +8,7 @@ export class WebinarsService {
   constructor(private readonly repo: WebinarsRepository) {}
 
   async create(dto: CreateWebinarDto) {
-    return this.repo.create(dto as any);
+    return this.repo.create(dto);
   }
 
   async findAll(skip?: number, take?: number) {
@@ -25,7 +25,7 @@ export class WebinarsService {
 
   async update(id: string, dto: UpdateWebinarDto) {
     await this.ensureExists(id);
-    return this.repo.update(id, dto as any);
+    return this.repo.update(id, dto);
   }
 
   async remove(id: string) {
