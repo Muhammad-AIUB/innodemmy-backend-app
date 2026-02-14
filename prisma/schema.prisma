@@ -13,17 +13,18 @@ enum WebinarStatus {
 }
 
 model Webinar {
-  id                 String         @id @default(uuid())
-  title              String
-  slug               String         @unique
-  description        String
-  date               DateTime
-  duration           Int
-  sectionOneTitle    String?
-  sectionOnePoints   String[]
-  sectionTwoTitle    String?
-  sectionTwoPoints   String[]
-  status             WebinarStatus  @default(DRAFT)
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  id               String        @id @default(uuid())
+  title            String
+  slug             String        @unique
+  description      String
+  date             DateTime
+  duration         Int
+  sectionOneTitle  String?
+  sectionOnePoints String[]      @default([])
+  sectionTwoTitle  String?
+  sectionTwoPoints String[]      @default([])
+  status           WebinarStatus @default(PUBLISHED)
+  isDeleted        Boolean       @default(false)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 }

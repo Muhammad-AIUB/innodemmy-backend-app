@@ -1,8 +1,8 @@
-export const slugify = (input: string): string => {
-  return input
+export function generateSlug(title: string): string {
+  return title
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
     .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-');
-};
+}

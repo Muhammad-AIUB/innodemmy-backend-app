@@ -9,11 +9,9 @@ import {
   IsString,
   Min,
 } from 'class-validator';
+import { WebinarStatus } from '@prisma/client';
 
-export enum WebinarStatus {
-  DRAFT = 'DRAFT',
-  PUBLISHED = 'PUBLISHED',
-}
+export { WebinarStatus };
 
 export class CreateWebinarDto {
   @ApiProperty({ example: 'Intro to Clean Architecture' })
