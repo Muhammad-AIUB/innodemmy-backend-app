@@ -23,7 +23,7 @@ model Webinar {
   sectionOnePoints String[]      @default([])
   sectionTwoTitle  String?
   sectionTwoPoints String[]      @default([])
-  status           WebinarStatus @default(PUBLISHED)
+  status           WebinarStatus @default(DRAFT)
   isDeleted        Boolean       @default(false)
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt

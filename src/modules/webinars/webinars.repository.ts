@@ -1,65 +1,80 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../shared/prisma/prisma.service';
-import { Prisma, WebinarStatus } from '@prisma/client';
+import { Prisma, Webinar, WebinarStatus } from '@prisma/client';
 
 @Injectable()
 export class WebinarsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  /* =========================
-     CREATE
-  ========================== */
-  async create(data: Prisma.WebinarCreateInput) {
+  async create(data: Prisma.WebinarCreateInput): Promise<Webinar> {
     return this.prisma.webinar.create({
       data,
     });
   }
 
-  /* =========================
-     FIND ONE BY ID
-  ========================== */
-  async findOneById(id: string) {
-    return this.prisma.webinar.findUnique({
-      where: { id },
+  async findById(id: string): Promise<Webinar | null> {
+    return this.prisma.webinar.findFirst({
+      where: {
+        id,
+        isDeleted: false,
+      },
     });
   }
 
-  /* =========================
-     FIND ONE BY SLUG
-  ========================== */
-  async findOneBySlug(slug: string) {
+  async findBySlug(slug: string): Promise<Webinar | null> {
     return this.prisma.webinar.findUnique({
       where: { slug },
     });
   }
 
-  /* =========================
-     FIND ALL (PUBLIC LIST)
-  ========================== */
-  async findAll(params: {
-    skip?: number;
-    take?: number;
-    search?: string;
-    status?: WebinarStatus;
-  }) {
-    const {
-      skip = 0,
-      take = 10,
-      search,
-      status = WebinarStatus.PUBLISHED,
-    } = params;
-
+  async findSlugConflicts(
+    baseSlug: string,
+  ): Promise<Array<{ id: string; slug: string }>> {
     return this.prisma.webinar.findMany({
       where: {
-        isDeleted: false,
-        status,
-        ...(search && {
-          title: {
-            contains: search,
-            mode: 'insensitive',
-          },
-        }),
+        slug: {
+          startsWith: baseSlug,
+        },
       },
+      select: {
+        id: true,
+        slug: true,
+      },
+    });
+  }
+
+  async findPublishedBySlug(slug: string): Promise<Webinar | null> {
+    return this.prisma.webinar.findFirst({
+      where: {
+        slug,
+        status: WebinarStatus.PUBLISHED,
+        isDeleted: false,
+      },
+    });
+  }
+
+  async findPublished(params: {
+    skip: number;
+    take: number;
+    search?: string;
+  }): Promise<Webinar[]> {
+    const { skip, take, search } = params;
+
+    const where: Prisma.WebinarWhereInput = {
+      isDeleted: false,
+      status: WebinarStatus.PUBLISHED,
+      ...(search
+        ? {
+            title: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          }
+        : {}),
+    };
+
+    return this.prisma.webinar.findMany({
+      where,
       skip,
       take,
       orderBy: {
@@ -68,64 +83,47 @@ export class WebinarsRepository {
     });
   }
 
-  /* =========================
-     COUNT (For Pagination Meta)
-  ========================== */
-  async count(params: { search?: string; status?: WebinarStatus }) {
-    const { search, status = WebinarStatus.PUBLISHED } = params;
+  async countPublished(search?: string): Promise<number> {
+    const where: Prisma.WebinarWhereInput = {
+      isDeleted: false,
+      status: WebinarStatus.PUBLISHED,
+      ...(search
+        ? {
+            title: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          }
+        : {}),
+    };
 
     return this.prisma.webinar.count({
-      where: {
-        isDeleted: false,
-        status,
-        ...(search && {
-          title: {
-            contains: search,
-            mode: 'insensitive',
-          },
-        }),
-      },
+      where,
     });
   }
 
-  /* =========================
-     UPDATE
-  ========================== */
-  async update(id: string, data: Prisma.WebinarUpdateInput) {
+  async update(id: string, data: Prisma.WebinarUpdateInput): Promise<Webinar> {
     return this.prisma.webinar.update({
       where: { id },
       data,
     });
   }
 
-  /* =========================
-     SOFT DELETE
-  ========================== */
-  async softDelete(id: string) {
+  async publish(id: string): Promise<Webinar> {
     return this.prisma.webinar.update({
       where: { id },
       data: {
-        isDeleted: true,
-        status: WebinarStatus.DRAFT,
+        status: WebinarStatus.PUBLISHED,
       },
     });
   }
 
-  /* =========================
-     HARD DELETE (Admin only if needed)
-  ========================== */
-  async hardDelete(id: string) {
-    return this.prisma.webinar.delete({
+  async softDelete(id: string): Promise<Webinar> {
+    return this.prisma.webinar.update({
       where: { id },
+      data: {
+        isDeleted: true,
+      },
     });
-  }
-
-  /* =========================
-     TRANSACTION SUPPORT (Future)
-  ========================== */
-  async runInTransaction<T>(
-    fn: (tx: Prisma.TransactionClient) => Promise<T>,
-  ): Promise<T> {
-    return this.prisma.$transaction(fn);
   }
 }

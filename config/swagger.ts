@@ -1,7 +1,7 @@
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestFastifyApplication } from '@nestjs/platform-fastify';
 
-export const setupSwagger = (app: NestFastifyApplication): void => {
+export const setupSwagger = (app: NestFastifyApplication) => {
   const config = new DocumentBuilder()
     .setTitle('Webinar API')
     .setDescription('Webinar management service')
