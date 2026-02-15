@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, Webinar, WebinarStatus } from '@prisma/client';
 import { WebinarsRepository } from './webinars.repository';
-import { CreateWebinarDto } from './dto/create-webinar.dto';
-import { UpdateWebinarDto } from './dto/update-webinar.dto';
-import { ListWebinarsQueryDto } from './dto/list-webinars-query.dto';
+import { CreateWebinarDto } from './dto/webinar/create-webinar.dto';
+import { UpdateWebinarDto } from './dto/webinar/update-webinar.dto';
+import { ListWebinarsQueryDto } from './dto/webinar/list-webinars-query.dto';
 import { generateSlug } from '../../common/utils/slugify';
 
 type PublicWebinarResponse = {

@@ -13,9 +13,9 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { WebinarsService } from './webinars.service';
-import { CreateWebinarDto } from './dto/create-webinar.dto';
-import { UpdateWebinarDto } from './dto/update-webinar.dto';
-import { ListWebinarsQueryDto } from './dto/list-webinars-query.dto';
+import { CreateWebinarDto } from './dto/webinar/create-webinar.dto';
+import { UpdateWebinarDto } from './dto/webinar/update-webinar.dto';
+import { ListWebinarsQueryDto } from './dto/webinar/list-webinars-query.dto';
 
 @ApiTags('webinars')
 @Controller('api/v1/webinars')

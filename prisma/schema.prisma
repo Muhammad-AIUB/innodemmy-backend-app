@@ -1,3 +1,5 @@
+//Webinar//
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -27,4 +29,77 @@ model Webinar {
   isDeleted        Boolean       @default(false)
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
+}
+
+//Blog//
+
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Blog {
+  id              String      @id @default(uuid())
+  title           String
+  slug            String      @unique
+  excerpt         String?
+  content         Json        // TipTap JSON
+  bannerImage     String?
+  readDuration    Int?
+  publishedAt     DateTime?
+  status          BlogStatus  @default(DRAFT)
+  isDeleted       Boolean     @default(false)
+
+  authorId        String
+  author          Author      @relation(fields: [authorId], references: [id])
+
+  categoryId      String?
+  category        Category?   @relation(fields: [categoryId], references: [id])
+
+  tags            BlogTag[]
+
+  seoTitle        String?
+  seoDescription  String?
+  seoKeywords     String[]
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([status])
+  @@index([publishedAt])
+  @@index([categoryId])
+}
+
+model Author {
+  id        String   @id @default(uuid())
+  name      String
+  bio       String?
+  avatar    String?
+  blogs     Blog[]
+  createdAt DateTime @default(now())
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  blogs     Blog[]
+  createdAt DateTime @default(now())
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  blogs     BlogTag[]
+}
+
+model BlogTag {
+  blogId String
+  tagId  String
+
+  blog   Blog @relation(fields: [blogId], references: [id])
+  tag    Tag  @relation(fields: [tagId], references: [id])
+
+  @@id([blogId, tagId])
 }
