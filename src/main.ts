@@ -6,7 +6,7 @@ import {
 import rateLimit from '@fastify/rate-limit';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { setupSwagger } from './config/swagger';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   try {
@@ -51,8 +51,22 @@ async function bootstrap() {
     });
     console.log('✅ CORS enabled');
 
+    // Production hook for Prisma beforeExit
+    if (process.env.NODE_ENV === 'production') {
+      process.on('beforeExit', () => {
+        app.close().catch((err) => console.error('Error closing app:', err));
+      });
+    }
+
     // Setup Swagger documentation
-    setupSwagger(app);
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('Webinar API')
+      .setDescription('Webinar management service')
+      .setVersion('1.0')
+      .build();
+
+    const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('api', app, swaggerDocument);
 
     // Graceful shutdown
     const gracefulShutdown = async (signal: string) => {
