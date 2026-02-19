@@ -104,268 +104,198 @@ model BlogTag {
   @@id([blogId, tagId])
 }
 
-// ==============================
+// ============================
 // ENUMS
-// ==============================
+// ============================
+
+enum UserRole {
+  ADMIN
+  STUDENT
+}
 
 enum CourseStatus {
   DRAFT
   PUBLISHED
-  ARCHIVED
 }
 
 enum EnrollmentStatus {
   PENDING
   ACTIVE
-  COMPLETED
   CANCELLED
 }
 
-enum PaymentStatus {
-  UNPAID
-  PAID
-  FAILED
-  REFUNDED
+enum LessonType {
+  VIDEO
+  QUIZ
+  ASSIGNMENT
 }
 
 
-// ==============================
-// COURSE CORE
-// ==============================
+// ============================
+// USER
+// ============================
+
+model User {
+  id          String     @id @default(uuid())
+  name        String
+  email       String     @unique
+  password    String?
+  phoneNumber String?
+  role        UserRole   @default(STUDENT)
+  isVerified  Boolean    @default(false)
+
+  enrollments Enrollment[]
+  assignments AssignmentSubmission[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+
+// ============================
+// COURSE
+// ============================
 
 model Course {
-  id                String   @id @default(uuid())
-  title             String
-  slug              String   @unique
-  shortDescription  String
-  description       Json      // Rich text (TipTap JSON)
-  bannerImage       String
-  promoVideoUrl     String?
+  id            String   @id @default(uuid())
+  title         String
+  slug          String   @unique
+  description   String
+  bannerImage   String
+  price         Float
+  discountPrice Float?
+  duration      Int      // months
+  startDate     DateTime
+  classDays     String
+  classTime     String
+  totalModules  Int
+  totalProjects Int
+  totalLive     Int
 
-  price             Int
-  discountPrice     Int?
-  currency          String    @default("BDT")
+  status        CourseStatus @default(DRAFT)
+  isDeleted     Boolean      @default(false)
 
-  batchNumber       Int?
-  startDate         DateTime?
-  classDays         String?
-  classTime         String?
-  durationInMonths  Int?
+  modules       CourseModule[]
+  instructors   Instructor[]
+  enrollments   Enrollment[]
+  faqs          FAQ[]
 
-  status            CourseStatus @default(DRAFT)
-  isFeatured        Boolean @default(false)
-
-  modules           CourseModule[]
-  benefits          CourseBenefit[]
-  targetAudiences   CourseAudience[]
-  requirements      CourseRequirement[]
-  faqs              CourseFAQ[]
-  instructors       CourseInstructor[]
-
-  enrollments       Enrollment[]
-  consultations     ConsultationRequest[]
-
-  seo               CourseSEO?
-
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  @@index([status])
-  @@index([slug])
-  @@index([isFeatured])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 
-
-// ==============================
+// ============================
 // COURSE MODULE
-// ==============================
+// ============================
 
 model CourseModule {
-  id          String @id @default(uuid())
-  courseId    String
-  title       String
-  description String
-  tierLabel   String?
-  order       Int
-
-  liveClasses Int?
-  projects    Int?
-
-  course      Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@index([courseId])
-  @@index([order])
-}
-
-
-
-// ==============================
-// WHAT YOU WILL GET
-// ==============================
-
-model CourseBenefit {
-  id          String @id @default(uuid())
-  courseId    String
-  title       String
-  description String
-  icon        String?
-  order       Int
-
-  course      Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@index([courseId])
-  @@index([order])
-}
-
-
-
-// ==============================
-// TARGET AUDIENCE
-// ==============================
-
-model CourseAudience {
-  id          String @id @default(uuid())
-  courseId    String
-  description String
-  icon        String?
-  order       Int
-
-  course      Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@index([courseId])
-  @@index([order])
-}
-
-
-
-// ==============================
-// REQUIREMENTS
-// ==============================
-
-model CourseRequirement {
-  id          String @id @default(uuid())
-  courseId    String
-  description String
-  order       Int
-
-  course      Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@index([courseId])
-  @@index([order])
-}
-
-
-
-// ==============================
-// FAQ
-// ==============================
-
-model CourseFAQ {
   id        String @id @default(uuid())
+  title     String
   courseId  String
-  question  String
-  answer    String
-  order     Int
+  course    Course @relation(fields: [courseId], references: [id])
 
-  course    Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@index([courseId])
-  @@index([order])
+  lessons   Lesson[]
 }
 
 
+// ============================
+// LESSON
+// ============================
 
-// ==============================
-// INSTRUCTOR (Reusable)
-// ==============================
+model Lesson {
+  id        String     @id @default(uuid())
+  title     String
+  type      LessonType
+  videoUrl  String?
+  moduleId  String
+  module    CourseModule @relation(fields: [moduleId], references: [id])
+
+  quiz      Quiz?
+  assignment Assignment?
+}
+
+
+// ============================
+// QUIZ
+// ============================
+
+model Quiz {
+  id       String  @id @default(uuid())
+  lessonId String  @unique
+  lesson   Lesson  @relation(fields: [lessonId], references: [id])
+
+  title    String
+}
+
+
+// ============================
+// ASSIGNMENT
+// ============================
+
+model Assignment {
+  id       String  @id @default(uuid())
+  lessonId String  @unique
+  lesson   Lesson  @relation(fields: [lessonId], references: [id])
+
+  title    String
+  description String
+
+  submissions AssignmentSubmission[]
+}
+
+model AssignmentSubmission {
+  id           String @id @default(uuid())
+  assignmentId String
+  userId       String
+  fileUrl      String
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
+  user       User       @relation(fields: [userId], references: [id])
+}
+
+
+// ============================
+// INSTRUCTOR
+// ============================
 
 model Instructor {
-  id        String @id @default(uuid())
-  name      String
-  bio       String
-  avatar    String?
-
-  courses   CourseInstructor[]
+  id       String @id @default(uuid())
+  name     String
+  image    String?
+  bio      String?
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id])
 }
 
 
+// ============================
+// FAQ
+// ============================
 
-// ==============================
-// COURSE ↔ INSTRUCTOR RELATION
-// ==============================
-
-model CourseInstructor {
-  id           String @id @default(uuid())
-  courseId     String
-  instructorId String
-
-  course       Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  instructor   Instructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
-
-  @@unique([courseId, instructorId])
-  @@index([courseId])
-  @@index([instructorId])
+model FAQ {
+  id       String @id @default(uuid())
+  question String
+  answer   String
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id])
 }
 
 
-
-// ==============================
-// ENROLLMENT (User ↔ Course)
-// ==============================
+// ============================
+// ENROLLMENT
+// ============================
 
 model Enrollment {
-  id            String @id @default(uuid())
-  courseId      String
-  userId        String
+  id        String @id @default(uuid())
+  userId    String
+  courseId  String
+  status    EnrollmentStatus @default(PENDING)
 
-  status        EnrollmentStatus @default(PENDING)
-  paymentStatus PaymentStatus @default(UNPAID)
-
-  enrolledAt    DateTime @default(now())
-
-  course        Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([courseId, userId])
-  @@index([userId])
-  @@index([courseId])
-}
-
-
-
-// ==============================
-// CONSULTATION FORM
-// ==============================
-
-model ConsultationRequest {
-  id        String   @id @default(uuid())
-  courseId  String?
-  fullName  String
-  email     String
-  phone     String
-  message   String?
+  user      User   @relation(fields: [userId], references: [id])
+  course    Course @relation(fields: [courseId], references: [id])
 
   createdAt DateTime @default(now())
 
-  course    Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
-
-  @@index([email])
-  @@index([courseId])
-}
-
-
-
-// ==============================
-// SEO
-// ==============================
-
-model CourseSEO {
-  id              String   @id @default(uuid())
-  courseId        String   @unique
-  metaTitle       String
-  metaDescription String
-  keywords        String[]
-
-  course          Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  @@unique([userId, courseId])
 }
