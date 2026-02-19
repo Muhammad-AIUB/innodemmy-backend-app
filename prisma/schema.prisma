@@ -136,19 +136,53 @@ enum LessonType {
 // ============================
 
 model User {
-  id          String     @id @default(uuid())
-  name        String
-  email       String     @unique
-  password    String?
-  phoneNumber String?
-  role        UserRole   @default(STUDENT)
-  isVerified  Boolean    @default(false)
+  id            String   @id @default(uuid())
+  name          String?
+  email         String   @unique
+  password      String?
+  phoneNumber   String?
+  role          UserRole @default(STUDENT)
 
-  enrollments Enrollment[]
-  assignments AssignmentSubmission[]
+  provider      AuthProvider @default(EMAIL)
+  googleId      String?  @unique
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isVerified    Boolean  @default(false)
+
+  enrollments   Enrollment[]
+  assignments   AssignmentSubmission[]
+
+  otpCodes      OtpCode[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+}
+
+model OtpCode {
+  id        String   @id @default(uuid())
+  email     String
+  code      String
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+
+  createdAt DateTime @default(now())
 }
 
 
