@@ -7,6 +7,8 @@ import { WebinarsModule } from './modules/webinars/webinars.module';
 import { BlogsModule } from './modules/blogs/blogs.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CoursesModule } from './modules/courses/courses.module';
+import { EnrollmentModule } from './modules/enrollments/enrollment.module';
+import { CourseContentModule } from './modules/course-content/course-content.module';
 
 @Module({
   imports: [
@@ -16,6 +18,8 @@ import { CoursesModule } from './modules/courses/courses.module';
     WebinarsModule,
     BlogsModule,
     CoursesModule,
+    EnrollmentModule,
+    CourseContentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
