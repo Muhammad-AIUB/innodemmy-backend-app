@@ -155,6 +155,7 @@ model Webinar {
   @@index([isDeleted])
   @@index([createdAt])
   @@index([status, date])
+  @@index([status, isDeleted])
 }
 
 //////////////////////////////////////////////////
@@ -195,6 +196,7 @@ model Blog {
   @@index([createdAt])
   @@index([authorId])
   @@index([status, publishedAt])
+  @@index([status, isDeleted])
 }
 
 model Author {
@@ -287,6 +289,7 @@ model Course {
   @@index([createdAt])
   @@index([createdById])
   @@index([status, createdAt])
+  @@index([status, isDeleted])
 }
 
 model CourseModule {

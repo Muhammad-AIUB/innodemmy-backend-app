@@ -15,6 +15,12 @@ import {
   PublishedBlogListEntity,
 } from './blogs.repository';
 import { ListBlogsQueryDto } from './queries/blog.query';
+import { CacheService } from '../../shared/cache/cache.service';
+
+/** TTL constants (milliseconds) */
+const CACHE_LIST_TTL = 5 * 60_000;
+const CACHE_ITEM_TTL = 10 * 60_000;
+const CACHE_PREFIX = 'blogs:';
 
 type PublicBlogListItem = {
   id: string;
@@ -76,10 +82,15 @@ type PaginatedBlogsResponse = {
 
 @Injectable()
 export class BlogsService {
-  constructor(private readonly repo: BlogsRepository) {}
+  constructor(
+    private readonly repo: BlogsRepository,
+    private readonly cache: CacheService,
+  ) {}
 
   async create(dto: CreateBlogDto): Promise<AdminBlogResponse> {
     const blog = await this.createWithUniqueSlug(dto);
+
+    this.cache.delByPrefix(CACHE_PREFIX);
 
     return this.mapAdminResponse(blog);
   }
@@ -161,6 +172,8 @@ export class BlogsService {
 
     const updated = await this.repo.update(id, updateData);
 
+    this.cache.delByPrefix(CACHE_PREFIX);
+
     return this.mapAdminResponse(updated);
   }
 
@@ -172,51 +185,74 @@ export class BlogsService {
       publishedAt: dto.publishedAt ? new Date(dto.publishedAt) : new Date(),
     });
 
+    this.cache.delByPrefix(CACHE_PREFIX);
+
     return this.mapAdminResponse(published);
   }
 
   async remove(id: string): Promise<void> {
     await this.ensureExists(id);
     await this.repo.softDelete(id);
+
+    this.cache.delByPrefix(CACHE_PREFIX);
   }
 
+  /**
+   * Public listing — results are cached per page/limit/categoryId key.
+   * Cache is automatically invalidated on any mutation.
+   */
   async findPublished(
     query: ListBlogsQueryDto,
   ): Promise<PaginatedBlogsResponse> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
+    const categoryId = query.categoryId ?? '';
     const skip = (page - 1) * limit;
 
-    const [items, total] = await Promise.all([
-      this.repo.findPublishedPaginated({
-        skip,
-        take: limit,
-        categoryId: query.categoryId,
-      }),
-      this.repo.countPublished(query.categoryId),
-    ]);
+    const cacheKey = `${CACHE_PREFIX}public:list:${page}:${limit}:${categoryId}`;
 
-    return {
-      data: items.map((item) => this.mapPublicListItem(item)),
-      meta: {
-        page,
-        limit,
-        total,
-        totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+    return this.cache.wrap(
+      cacheKey,
+      async () => {
+        const [items, total] = await Promise.all([
+          this.repo.findPublishedPaginated({
+            skip,
+            take: limit,
+            categoryId: categoryId || undefined,
+          }),
+          this.repo.countPublished(categoryId || undefined),
+        ]);
+
+        return {
+          data: items.map((item) => this.mapPublicListItem(item)),
+          meta: {
+            page,
+            limit,
+            total,
+            totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+          },
+        };
       },
-    };
+      CACHE_LIST_TTL,
+    );
   }
 
+  /**
+   * Public single-blog lookup by slug — cached per slug.
+   */
   async findPublishedBySlug(slug: string): Promise<PublicBlogDetail> {
-    const blog = await this.repo.findPublishedBySlug(slug);
-
-    if (!blog) {
-      throw new NotFoundException('Blog not found');
-    }
-
-    return this.mapPublicDetail(blog);
+    return this.cache.wrap(
+      `${CACHE_PREFIX}public:slug:${slug}`,
+      async () => {
+        const blog = await this.repo.findPublishedBySlug(slug);
+        if (!blog) {
+          throw new NotFoundException('Blog not found');
+        }
+        return this.mapPublicDetail(blog);
+      },
+      CACHE_ITEM_TTL,
+    );
   }
-
   private async ensureExists(id: string): Promise<BlogEntity> {
     const blog = await this.repo.findById(id);
 

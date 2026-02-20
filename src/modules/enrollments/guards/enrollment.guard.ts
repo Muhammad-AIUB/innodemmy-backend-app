@@ -12,13 +12,6 @@ interface AuthenticatedRequest extends Request {
   user: { sub: string; role: UserRole };
   params: Record<string, string>;
 }
-
-/**
- * EnrollmentGuard — protects lesson/content routes.
- *
- * Bypass: ADMIN, SUPER_ADMIN always pass.
- * Enforce: STUDENT must have an ACTIVE enrollment for the :courseId param.
- */
 @Injectable()
 export class EnrollmentGuard implements CanActivate {
   constructor(private readonly enrollmentRepo: EnrollmentRepository) {}

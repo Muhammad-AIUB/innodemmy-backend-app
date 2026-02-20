@@ -3,12 +3,22 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Course, CourseStatus, UserRole } from '@prisma/client';
-import { CoursesRepository } from '../repositories/courses.repository';
+import { CourseStatus, UserRole } from '@prisma/client';
+import {
+  Course,
+  CourseListItem,
+  CoursesRepository,
+} from '../repositories/courses.repository';
 import { CreateCourseDto } from '../dto/create-course.dto';
 import { UpdateCourseDto } from '../dto/update-course.dto';
 import { ListCoursesQueryDto } from '../queries/course.query';
 import { generateSlug } from '../../../common/utils/slugify';
+import { CacheService } from '../../../shared/cache/cache.service';
+
+/** TTL constants (milliseconds) */
+const CACHE_LIST_TTL = 5 * 60_000;
+const CACHE_ITEM_TTL = 10 * 60_000;
+const CACHE_PREFIX = 'courses:';
 
 type PublicCourseResponse = {
   title: string;
@@ -45,7 +55,10 @@ type PaginatedCoursesResponse = {
 
 @Injectable()
 export class CoursesService {
-  constructor(private readonly repo: CoursesRepository) {}
+  constructor(
+    private readonly repo: CoursesRepository,
+    private readonly cache: CacheService,
+  ) {}
 
   async create(
     dto: CreateCourseDto,
@@ -71,41 +84,66 @@ export class CoursesService {
       createdById: userId,
     });
 
+    // Invalidate public listing caches — a new draft may eventually show up
+    this.cache.delByPrefix(CACHE_PREFIX);
+
     return this.mapAdminResponse(course);
   }
 
+  /**
+   * Public listing — results are cached per page/limit/search key.
+   * Cache is automatically invalidated on any mutation.
+   */
   async findPublished(
     query: ListCoursesQueryDto,
   ): Promise<PaginatedCoursesResponse> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
-    const search = query.search?.trim();
-
+    const search = query.search?.trim() ?? '';
     const skip = (page - 1) * limit;
 
-    const [items, total] = await Promise.all([
-      this.repo.findPublished({ skip, take: limit, search }),
-      this.repo.countPublished(search),
-    ]);
+    const cacheKey = `${CACHE_PREFIX}public:list:${page}:${limit}:${search}`;
 
-    return {
-      data: items.map((item) => this.mapPublicResponse(item)),
-      meta: {
-        page,
-        total,
-        totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+    return this.cache.wrap(
+      cacheKey,
+      async () => {
+        const [items, total] = await Promise.all([
+          this.repo.findPublished({
+            skip,
+            take: limit,
+            search: search || undefined,
+          }),
+          this.repo.countPublished(search || undefined),
+        ]);
+
+        return {
+          data: items.map((item) => this.mapPublicResponse(item)),
+          meta: {
+            page,
+            total,
+            totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+          },
+        };
       },
-    };
+      CACHE_LIST_TTL,
+    );
   }
 
+  /**
+   * Public single-course lookup by slug — cached per slug.
+   */
   async findPublishedBySlug(slug: string): Promise<PublicCourseResponse> {
-    const course = await this.repo.findPublishedBySlug(slug);
-
-    if (!course) {
-      throw new NotFoundException('Course not found');
-    }
-
-    return this.mapPublicResponse(course);
+    return this.cache.wrap(
+      `${CACHE_PREFIX}public:slug:${slug}`,
+      async () => {
+        const course = await this.repo.findPublishedBySlug(slug);
+        if (!course) {
+          throw new NotFoundException('Course not found');
+        }
+        return this.mapPublicResponse(course);
+      },
+      CACHE_ITEM_TTL,
+    );
   }
 
   async update(
@@ -191,6 +229,9 @@ export class CoursesService {
 
     const updated = await this.repo.update(id, updateData);
 
+    // Blow away all course cache entries (listings + slug cache)
+    this.cache.delByPrefix(CACHE_PREFIX);
+
     return this.mapAdminResponse(updated);
   }
 
@@ -207,6 +248,8 @@ export class CoursesService {
 
     const published = await this.repo.publish(id);
 
+    this.cache.delByPrefix(CACHE_PREFIX);
+
     return this.mapAdminResponse(published);
   }
 
@@ -214,6 +257,8 @@ export class CoursesService {
     await this.ensureExistsAndAuthorized(id, userId, userRole);
 
     await this.repo.softDelete(id);
+
+    this.cache.delByPrefix(CACHE_PREFIX);
   }
 
   private async ensureExistsAndAuthorized(
@@ -268,7 +313,12 @@ export class CoursesService {
     return candidate;
   }
 
-  private mapPublicResponse(course: Course): PublicCourseResponse {
+  /**
+   * Accepts both the narrow `CourseListItem` (from listing queries) and
+   * the full `Course` object (from admin/detail queries).
+   * TypeScript's structural typing ensures both satisfy the parameter.
+   */
+  private mapPublicResponse(course: CourseListItem): PublicCourseResponse {
     return {
       title: course.title,
       slug: course.slug,

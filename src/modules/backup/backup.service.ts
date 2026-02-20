@@ -1,8 +1,14 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { exec } from 'child_process';
 import * as cron from 'node-cron';
 import * as fs from 'fs';
+import * as fsp from 'fs/promises';
 import * as path from 'path';
 import { promisify } from 'util';
 
@@ -37,7 +43,7 @@ export class BackupService implements OnModuleInit, OnModuleDestroy {
 
   onModuleDestroy(): void {
     if (this.cronJob) {
-      this.cronJob.stop();
+      void this.cronJob.stop();
       this.logger.log('Backup cron job stopped.');
     }
   }
@@ -168,8 +174,8 @@ export class BackupService implements OnModuleInit, OnModuleDestroy {
    * Files are sorted by name (ISO date format guarantees chronological order).
    */
   private async pruneOldBackups(): Promise<void> {
-    const files = fs
-      .readdirSync(this.backupDir)
+    const entries = await fsp.readdir(this.backupDir);
+    const files = entries
       .filter((f) => f.startsWith('backup-') && f.endsWith('.sql'))
       .sort(); // ascending — oldest first
 
@@ -181,7 +187,7 @@ export class BackupService implements OnModuleInit, OnModuleDestroy {
 
     for (const file of toDelete) {
       const filePath = path.join(this.backupDir, file);
-      fs.unlinkSync(filePath);
+      await fsp.unlink(filePath);
       this.logger.log(`Old backup removed: ${filePath}`);
     }
   }
@@ -195,6 +201,9 @@ export class BackupService implements OnModuleInit, OnModuleDestroy {
       this.logger.log(`Backup directory created: ${this.backupDir}`);
     }
   }
+
+  // Note: ensureBackupDir is intentionally synchronous — it runs once during
+  // onModuleInit before the app starts serving requests, so blocking here is safe.
 
   /**
    * Returns today's date formatted as YYYY-MM-DD in UTC.

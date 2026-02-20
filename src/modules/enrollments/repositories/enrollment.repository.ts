@@ -12,12 +12,16 @@ export class EnrollmentRepository {
     return this.prisma.enrollment.create({ data });
   }
 
+  /**
+   * O(1) point lookup using the @@unique([userId, courseId]) index.
+   * Replaced findFirst (sequential scan) with findUnique (index seek).
+   */
   async findByUserAndCourse(
     userId: string,
     courseId: string,
   ): Promise<Enrollment | null> {
-    return this.prisma.enrollment.findFirst({
-      where: { userId, courseId },
+    return this.prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
     });
   }
 
@@ -31,13 +35,8 @@ export class EnrollmentRepository {
     userId: string,
     courseId: string,
   ): Promise<Enrollment | null> {
-    return this.prisma.enrollment.findFirst({
-      where: {
-        userId,
-        courseId,
-        status: EnrollmentStatus.ACTIVE,
-      },
-      // Leverages the @@unique([userId, courseId]) index for an efficient lookup
+    const enrollment = await this.prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
       select: {
         id: true,
         userId: true,
@@ -45,8 +44,15 @@ export class EnrollmentRepository {
         status: true,
         enrolledById: true,
         createdAt: true,
+        updatedAt: true,
       },
-    }) as Promise<Enrollment | null>;
+    });
+
+    if (!enrollment || enrollment.status !== EnrollmentStatus.ACTIVE) {
+      return null;
+    }
+
+    return enrollment as Enrollment;
   }
 
   async updateStatus(
@@ -69,6 +75,7 @@ export class EnrollmentRepository {
         status: true,
         enrolledById: true,
         createdAt: true,
+        updatedAt: true,
       },
     }) as Promise<Enrollment[]>;
   }

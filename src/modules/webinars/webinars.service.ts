@@ -1,12 +1,18 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, Webinar, WebinarStatus } from '@prisma/client';
 import { PrismaService } from '../../shared/prisma/prisma.service';
-import { WebinarsRepository } from './webinars.repository';
+import { WebinarsRepository, WebinarListItem } from './webinars.repository';
 import { CreateWebinarDto } from './dto/create-webinar.dto';
 import { UpdateWebinarDto } from './dto/update-webinar.dto';
 import { ListWebinarsQueryDto } from './dto/list-webinars-query.dto';
 import { generateSlug } from '../../common/utils/slugify';
 import { NotificationService } from '../notification/services/notification.service';
+import { CacheService } from '../../shared/cache/cache.service';
+
+/** TTL constants (milliseconds) */
+const CACHE_LIST_TTL = 5 * 60_000; // 5 min — public listings
+const CACHE_ITEM_TTL = 10 * 60_000; // 10 min — individual items
+const CACHE_PREFIX = 'webinars:';
 
 type PublicWebinarResponse = {
   title: string;
@@ -44,6 +50,7 @@ export class WebinarsService {
     private readonly repo: WebinarsRepository,
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
+    private readonly cache: CacheService,
   ) {}
 
   async create(dto: CreateWebinarDto): Promise<AdminWebinarResponse> {
@@ -56,45 +63,65 @@ export class WebinarsService {
       status: WebinarStatus.DRAFT,
     });
 
+    this.cache.delByPrefix(CACHE_PREFIX);
+
     return this.mapAdminResponse(webinar);
   }
 
+  /**
+   * Public listing — results are cached per page/limit/search key.
+   * Cache is automatically invalidated on any mutation.
+   */
   async findPublished(
     query: ListWebinarsQueryDto,
   ): Promise<PaginatedWebinarsResponse> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 10;
-    const search = query.search?.trim();
-
+    const search = query.search?.trim() ?? '';
     const skip = (page - 1) * limit;
 
-    const [items, total] = await Promise.all([
-      this.repo.findPublished({
-        skip,
-        take: limit,
-        search,
-      }),
-      this.repo.countPublished(search),
-    ]);
+    const cacheKey = `${CACHE_PREFIX}public:list:${page}:${limit}:${search}`;
 
-    return {
-      data: items.map((item) => this.mapPublicResponse(item)),
-      meta: {
-        page,
-        total,
-        totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+    return this.cache.wrap(
+      cacheKey,
+      async () => {
+        const [items, total] = await Promise.all([
+          this.repo.findPublished({
+            skip,
+            take: limit,
+            search: search || undefined,
+          }),
+          this.repo.countPublished(search || undefined),
+        ]);
+
+        return {
+          data: items.map((item) => this.mapPublicResponse(item)),
+          meta: {
+            page,
+            total,
+            totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+          },
+        };
       },
-    };
+      CACHE_LIST_TTL,
+    );
   }
 
+  /**
+   * Public single-webinar lookup by slug — cached per slug.
+   */
   async findPublishedBySlug(slug: string): Promise<PublicWebinarResponse> {
-    const webinar = await this.repo.findPublishedBySlug(slug);
-
-    if (!webinar) {
-      throw new NotFoundException('Webinar not found');
-    }
-
-    return this.mapPublicResponse(webinar);
+    return this.cache.wrap(
+      `${CACHE_PREFIX}public:slug:${slug}`,
+      async () => {
+        const webinar = await this.repo.findPublishedBySlug(slug);
+        if (!webinar) {
+          throw new NotFoundException('Webinar not found');
+        }
+        return this.mapPublicResponse(webinar);
+      },
+      CACHE_ITEM_TTL,
+    );
   }
 
   async update(
@@ -182,6 +209,8 @@ export class WebinarsService {
 
     const updated = await this.repo.update(id, updateData);
 
+    this.cache.delByPrefix(CACHE_PREFIX);
+
     return this.mapAdminResponse(updated);
   }
 
@@ -196,6 +225,8 @@ export class WebinarsService {
 
     // Fire-and-forget: send notifications to all active users
     void this.fireWebinarPublishedNotification(published);
+
+    this.cache.delByPrefix(CACHE_PREFIX);
 
     return this.mapAdminResponse(published);
   }
@@ -226,6 +257,8 @@ export class WebinarsService {
     await this.ensureExists(id);
 
     await this.repo.softDelete(id);
+
+    this.cache.delByPrefix(CACHE_PREFIX);
   }
 
   private async ensureExists(id: string) {
@@ -278,7 +311,11 @@ export class WebinarsService {
     return left.every((item, index) => item === right[index]);
   }
 
-  private mapPublicResponse(webinar: Webinar): PublicWebinarResponse {
+  /**
+   * Accepts both `WebinarListItem` (narrow listing rows) and full `Webinar`
+   * objects. TypeScript structural typing ensures both satisfy the parameter.
+   */
+  private mapPublicResponse(webinar: WebinarListItem): PublicWebinarResponse {
     return {
       title: webinar.title,
       slug: webinar.slug,

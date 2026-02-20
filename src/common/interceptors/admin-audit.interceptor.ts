@@ -112,10 +112,9 @@ export class AdminAuditInterceptor implements NestInterceptor {
       this.logger.log(
         `[ADMIN_ACTION] admin=${adminId} action=${action} entity=${entity} entityId=${entityId}`,
       );
-    } catch (err) {
-      this.logger.error(
-        `Failed to log admin action: ${(err as Error).message}`,
-      );
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Failed to log admin action: ${message}`);
     }
   }
 }

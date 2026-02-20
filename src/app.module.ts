@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './shared/prisma/prisma.module';
+import { CacheModule } from './shared/cache/cache.module';
 import { MailModule } from './shared/mail/mail.module';
 import { WebinarsModule } from './modules/webinars/webinars.module';
 import { BlogsModule } from './modules/blogs/blogs.module';
@@ -19,6 +20,7 @@ import { BackupModule } from './modules/backup/backup.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    CacheModule,
     MailModule,
     AuthModule,
     WebinarsModule,

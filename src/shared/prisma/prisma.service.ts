@@ -28,23 +28,53 @@ export class PrismaService
 {
   private readonly logger = new Logger(PrismaService.name);
 
+  private _directClient: PrismaClient | null = null;
+
+  constructor() {
+    // Pass the pooled URL explicitly so we always use the right endpoint
+    // even if Prisma's env-resolution would pick a different one.
+    super({
+      datasources: {
+        db: { url: process.env.DATABASE_URL },
+      },
+      // Reduce noise in production; show warnings in development.
+      log:
+        process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+    });
+  }
+  get direct(): PrismaClient {
+    const url = process.env.DATABASE_URL_UNPOOLED;
+    if (!url) {
+      // Not configured — pooled client is the only option.
+      return this;
+    }
+    if (!this._directClient) {
+      this._directClient = new PrismaClient({
+        datasources: { db: { url } },
+        log: ['error'],
+      });
+    }
+    return this._directClient;
+  }
+
   async onModuleInit() {
     this.registerSoftDeleteMiddleware();
     await this.$connect();
-    this.logger.log('Database connected successfully');
+    this.logger.log('Database connected (pooled)');
+
+    if (process.env.DATABASE_URL_UNPOOLED) {
+      this.logger.log(
+        'DATABASE_URL_UNPOOLED detected — direct client available via prisma.direct',
+      );
+    }
   }
 
   async onModuleDestroy() {
     await this.$disconnect();
+    if (this._directClient) {
+      await this._directClient.$disconnect();
+    }
   }
-
-  /**
-   * Automatically injects `isDeleted: false` into read queries
-   * for Course, Blog, and Webinar models.
-   *
-   * This prevents accidentally fetching soft-deleted records
-   * without having to remember the filter in every query.
-   */
   private registerSoftDeleteMiddleware(): void {
     type QueryArgs = { where?: Record<string, unknown>; [k: string]: unknown };
 
@@ -55,7 +85,7 @@ export class PrismaService
         FILTERED_ACTIONS.includes(params.action)
       ) {
         // For findUnique / findUniqueOrThrow, convert to findFirst
-        // because we need to add the isDeleted filter alongside unique fields
+        // because we need to add the isDeleted filter alongside unique fields.
         if (
           params.action === 'findUnique' ||
           params.action === 'findUniqueOrThrow'
@@ -79,7 +109,7 @@ export class PrismaService
           const currentArgs = (params.args ?? {}) as QueryArgs;
           const currentWhere = currentArgs.where ?? {};
 
-          // Only inject if isDeleted is not already explicitly set
+          // Only inject if isDeleted is not already explicitly set.
           if (currentWhere.isDeleted === undefined) {
             currentWhere.isDeleted = false;
           }
