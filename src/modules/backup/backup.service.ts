@@ -27,11 +27,13 @@ export class BackupService implements OnModuleInit, OnModuleDestroy {
   /**
    * Directory where backups are stored.
    * Override with BACKUP_DIR env variable (e.g. /var/backups/postgres on your VPS).
+   * Defaults to <project_root>/backups so that the container has write access.
    */
   private readonly backupDir: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.backupDir = this.configService.get<string>('BACKUP_DIR') ?? '/backups';
+    const defaultDir = path.join(process.cwd(), 'backups');
+    this.backupDir = this.configService.get<string>('BACKUP_DIR') ?? defaultDir;
   }
 
   // ─── Lifecycle ────────────────────────────────────────────────────────────
