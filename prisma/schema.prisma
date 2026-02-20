@@ -1,5 +1,3 @@
-//Webinar//
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,108 +7,30 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+//////////////////////////////////////////////////
+// ENUMS
+//////////////////////////////////////////////////
+
+enum UserRole {
+  STUDENT
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+}
+
 enum WebinarStatus {
   DRAFT
   PUBLISHED
 }
 
-model Webinar {
-  id               String        @id @default(uuid())
-  title            String
-  slug             String        @unique
-  description      String
-  date             DateTime
-  duration         Int
-  sectionOneTitle  String?
-  sectionOnePoints String[]      @default([])
-  sectionTwoTitle  String?
-  sectionTwoPoints String[]      @default([])
-  status           WebinarStatus @default(DRAFT)
-  isDeleted        Boolean       @default(false)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-}
-
-//Blog//
-
 enum BlogStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
-}
-
-model Blog {
-  id              String      @id @default(uuid())
-  title           String
-  slug            String      @unique
-  excerpt         String?
-  content         Json        // TipTap JSON
-  bannerImage     String?
-  readDuration    Int?
-  publishedAt     DateTime?
-  status          BlogStatus  @default(DRAFT)
-  isDeleted       Boolean     @default(false)
-
-  authorId        String
-  author          Author      @relation(fields: [authorId], references: [id])
-
-  categoryId      String?
-  category        Category?   @relation(fields: [categoryId], references: [id])
-
-  tags            BlogTag[]
-
-  seoTitle        String?
-  seoDescription  String?
-  seoKeywords     String[]
-
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-
-  @@index([status])
-  @@index([publishedAt])
-  @@index([categoryId])
-}
-
-model Author {
-  id        String   @id @default(uuid())
-  name      String
-  bio       String?
-  avatar    String?
-  blogs     Blog[]
-  createdAt DateTime @default(now())
-}
-
-model Category {
-  id        String   @id @default(uuid())
-  name      String
-  slug      String   @unique
-  blogs     Blog[]
-  createdAt DateTime @default(now())
-}
-
-model Tag {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  blogs     BlogTag[]
-}
-
-model BlogTag {
-  blogId String
-  tagId  String
-
-  blog   Blog @relation(fields: [blogId], references: [id])
-  tag    Tag  @relation(fields: [tagId], references: [id])
-
-  @@id([blogId, tagId])
-}
-
-// ============================
-// ENUMS
-// ============================
-
-enum UserRole {
-  ADMIN
-  STUDENT
 }
 
 enum CourseStatus {
@@ -130,10 +50,9 @@ enum LessonType {
   ASSIGNMENT
 }
 
-
-// ============================
-// USER
-// ============================
+//////////////////////////////////////////////////
+// USER + AUTH
+//////////////////////////////////////////////////
 
 model User {
   id            String   @id @default(uuid())
@@ -141,25 +60,28 @@ model User {
   email         String   @unique
   password      String?
   phoneNumber   String?
-  role          UserRole @default(STUDENT)
 
+  role          UserRole @default(STUDENT)
   provider      AuthProvider @default(EMAIL)
   googleId      String?  @unique
 
   isVerified    Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  isDeleted     Boolean  @default(false)
+
+  createdById   String?
+  createdBy     User?    @relation("AdminCreator", fields: [createdById], references: [id])
+  createdAdmins User[]   @relation("AdminCreator")
+
+  createdCourses Course[]
+  adminEnrollments Enrollment[] @relation("AdminEnrollment")
 
   enrollments   Enrollment[]
-  assignments   AssignmentSubmission[]
-
+  submissions   AssignmentSubmission[]
   otpCodes      OtpCode[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-}
-
-enum AuthProvider {
-  EMAIL
-  GOOGLE
 }
 
 model OtpCode {
@@ -185,10 +107,95 @@ model PasswordResetToken {
   createdAt DateTime @default(now())
 }
 
+//////////////////////////////////////////////////
+// WEBINAR
+//////////////////////////////////////////////////
 
-// ============================
+model Webinar {
+  id               String        @id @default(uuid())
+  title            String
+  slug             String        @unique
+  description      String
+  date             DateTime
+  duration         Int
+  sectionOneTitle  String?
+  sectionOnePoints String[]      @default([])
+  sectionTwoTitle  String?
+  sectionTwoPoints String[]      @default([])
+  status           WebinarStatus @default(DRAFT)
+  isDeleted        Boolean       @default(false)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+//////////////////////////////////////////////////
+// BLOG
+//////////////////////////////////////////////////
+
+model Blog {
+  id              String      @id @default(uuid())
+  title           String
+  slug            String      @unique
+  excerpt         String?
+  content         Json
+  bannerImage     String?
+  readDuration    Int?
+  publishedAt     DateTime?
+  status          BlogStatus  @default(DRAFT)
+  isDeleted       Boolean     @default(false)
+
+  authorId        String
+  author          Author      @relation(fields: [authorId], references: [id])
+
+  categoryId      String?
+  category        Category?   @relation(fields: [categoryId], references: [id])
+
+  tags            BlogTag[]
+
+  seoTitle        String?
+  seoDescription  String?
+  seoKeywords     String[]
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([status])
+}
+
+model Author {
+  id        String   @id @default(uuid())
+  name      String
+  bio       String?
+  avatar    String?
+  blogs     Blog[]
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  blogs     Blog[]
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  blogs     BlogTag[]
+}
+
+model BlogTag {
+  blogId String
+  tagId  String
+
+  blog   Blog @relation(fields: [blogId], references: [id])
+  tag    Tag  @relation(fields: [tagId], references: [id])
+
+  @@id([blogId, tagId])
+}
+
+//////////////////////////////////////////////////
 // COURSE
-// ============================
+//////////////////////////////////////////////////
 
 model Course {
   id            String   @id @default(uuid())
@@ -198,7 +205,7 @@ model Course {
   bannerImage   String
   price         Float
   discountPrice Float?
-  duration      Int      // months
+  duration      Int
   startDate     DateTime
   classDays     String
   classTime     String
@@ -209,19 +216,17 @@ model Course {
   status        CourseStatus @default(DRAFT)
   isDeleted     Boolean      @default(false)
 
+  createdById   String
+  createdBy     User         @relation(fields: [createdById], references: [id])
+
   modules       CourseModule[]
-  instructors   Instructor[]
+  instructors   CourseInstructor[]
   enrollments   Enrollment[]
   faqs          FAQ[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
-
-
-// ============================
-// COURSE MODULE
-// ============================
 
 model CourseModule {
   id        String @id @default(uuid())
@@ -231,11 +236,6 @@ model CourseModule {
 
   lessons   Lesson[]
 }
-
-
-// ============================
-// LESSON
-// ============================
 
 model Lesson {
   id        String     @id @default(uuid())
@@ -249,11 +249,6 @@ model Lesson {
   assignment Assignment?
 }
 
-
-// ============================
-// QUIZ
-// ============================
-
 model Quiz {
   id       String  @id @default(uuid())
   lessonId String  @unique
@@ -261,11 +256,6 @@ model Quiz {
 
   title    String
 }
-
-
-// ============================
-// ASSIGNMENT
-// ============================
 
 model Assignment {
   id       String  @id @default(uuid())
@@ -286,26 +276,30 @@ model AssignmentSubmission {
 
   assignment Assignment @relation(fields: [assignmentId], references: [id])
   user       User       @relation(fields: [userId], references: [id])
+
+  createdAt  DateTime @default(now())
+
+  @@unique([assignmentId, userId])
 }
-
-
-// ============================
-// INSTRUCTOR
-// ============================
 
 model Instructor {
-  id       String @id @default(uuid())
-  name     String
-  image    String?
-  bio      String?
-  courseId String
-  course   Course @relation(fields: [courseId], references: [id])
+  id        String   @id @default(uuid())
+  name      String
+  image     String?
+  bio       String?
+
+  courses   CourseInstructor[]
 }
 
+model CourseInstructor {
+  courseId     String
+  instructorId String
 
-// ============================
-// FAQ
-// ============================
+  course       Course     @relation(fields: [courseId], references: [id])
+  instructor   Instructor @relation(fields: [instructorId], references: [id])
+
+  @@id([courseId, instructorId])
+}
 
 model FAQ {
   id       String @id @default(uuid())
@@ -315,16 +309,14 @@ model FAQ {
   course   Course @relation(fields: [courseId], references: [id])
 }
 
-
-// ============================
-// ENROLLMENT
-// ============================
-
 model Enrollment {
   id        String @id @default(uuid())
   userId    String
   courseId  String
   status    EnrollmentStatus @default(PENDING)
+
+  enrolledById String?
+  enrolledBy   User? @relation("AdminEnrollment", fields: [enrolledById], references: [id])
 
   user      User   @relation(fields: [userId], references: [id])
   course    Course @relation(fields: [courseId], references: [id])
