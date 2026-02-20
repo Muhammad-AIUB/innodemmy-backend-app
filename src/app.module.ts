@@ -6,6 +6,7 @@ import { PrismaModule } from './shared/prisma/prisma.module';
 import { WebinarsModule } from './modules/webinars/webinars.module';
 import { BlogsModule } from './modules/blogs/blogs.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { CoursesModule } from './modules/courses/courses.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { AuthModule } from './modules/auth/auth.module';
     AuthModule,
     WebinarsModule,
     BlogsModule,
+    CoursesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
