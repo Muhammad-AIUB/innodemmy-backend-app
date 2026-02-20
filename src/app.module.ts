@@ -9,6 +9,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CoursesModule } from './modules/courses/courses.module';
 import { EnrollmentModule } from './modules/enrollments/enrollment.module';
 import { CourseContentModule } from './modules/course-content/course-content.module';
+import { AssessmentModule } from './modules/assessment/assessment.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { CourseContentModule } from './modules/course-content/course-content.mod
     CoursesModule,
     EnrollmentModule,
     CourseContentModule,
+    AssessmentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
