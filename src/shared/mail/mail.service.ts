@@ -82,12 +82,19 @@ export class MailService {
 
   private simulateSend(options: SendMailOptions, html: string): void {
     this.logger.debug('─────────── [EMAIL SIMULATED] ───────────');
-    this.logger.debug(`To      : ${Array.isArray(options.to) ? options.to.join(', ') : options.to}`);
+    this.logger.debug(
+      `To      : ${Array.isArray(options.to) ? options.to.join(', ') : options.to}`,
+    );
     this.logger.debug(`Subject : ${options.subject}`);
     this.logger.debug(`Template: ${options.template}`);
     this.logger.debug(`Context : ${JSON.stringify(options.context, null, 2)}`);
     this.logger.debug('────────── [BEGIN HTML PREVIEW] ─────────');
-    this.logger.debug(html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+    this.logger.debug(
+      html
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim(),
+    );
     this.logger.debug('─────────────────────────────────────────');
   }
 
@@ -101,49 +108,49 @@ export class MailService {
       case EmailTemplate.ENROLLMENT_ACTIVATED:
         return this.tpl(
           '🎉 Enrollment Activated',
-          `<p>Hi <strong>${ctx.name}</strong>,</p>
-           <p>Your enrollment in <strong>${ctx.courseName}</strong> has been <span style="color:#16a34a">activated</span>.</p>
+          `<p>Hi <strong>${String(ctx.name)}</strong>,</p>
+           <p>Your enrollment in <strong>${String(ctx.courseName)}</strong> has been <span style="color:#16a34a">activated</span>.</p>
            <p>You can now access all course materials. Happy learning!</p>`,
         );
 
       case EmailTemplate.ASSIGNMENT_SUBMITTED:
         return this.tpl(
           '✅ Assignment Submitted Successfully',
-          `<p>Hi <strong>${ctx.name}</strong>,</p>
-           <p>Your assignment <strong>${ctx.assignmentTitle}</strong> for course <strong>${ctx.courseName}</strong> has been received.</p>
+          `<p>Hi <strong>${String(ctx.name)}</strong>,</p>
+           <p>Your assignment <strong>${String(ctx.assignmentTitle)}</strong> for course <strong>${String(ctx.courseName)}</strong> has been received.</p>
            <p>Our instructors will review it shortly.</p>`,
         );
 
       case EmailTemplate.ASSIGNMENT_SUBMITTED_ADMIN:
         return this.tpl(
           '📋 New Assignment Submission',
-          `<p>Hi <strong>${ctx.adminName}</strong>,</p>
-           <p>Student <strong>${ctx.studentName}</strong> (<em>${ctx.studentEmail}</em>) has submitted assignment <strong>${ctx.assignmentTitle}</strong>.</p>
+          `<p>Hi <strong>${String(ctx.adminName)}</strong>,</p>
+           <p>Student <strong>${String(ctx.studentName)}</strong> (<em>${String(ctx.studentEmail)}</em>) has submitted assignment <strong>${String(ctx.assignmentTitle)}</strong>.</p>
            <p>Please log in to review the submission.</p>`,
         );
 
       case EmailTemplate.COURSE_COMPLETED:
         return this.tpl(
           '🏆 Course Completed!',
-          `<p>Hi <strong>${ctx.name}</strong>,</p>
-           <p>Congratulations! You have successfully completed <strong>${ctx.courseName}</strong>.</p>
+          `<p>Hi <strong>${String(ctx.name)}</strong>,</p>
+           <p>Congratulations! You have successfully completed <strong>${String(ctx.courseName)}</strong>.</p>
            <p>Your certificate will be generated shortly.</p>`,
         );
 
       case EmailTemplate.CERTIFICATE_GENERATED:
         return this.tpl(
           '🎓 Your Certificate is Ready',
-          `<p>Hi <strong>${ctx.name}</strong>,</p>
-           <p>Your certificate for <strong>${ctx.courseName}</strong> has been generated.</p>
-           ${ctx.certificateUrl ? `<p><a href="${ctx.certificateUrl}" style="color:#2563eb">Download Certificate</a></p>` : ''}`,
+          `<p>Hi <strong>${String(ctx.name)}</strong>,</p>
+           <p>Your certificate for <strong>${String(ctx.courseName)}</strong> has been generated.</p>
+           ${String(ctx.certificateUrl) !== 'undefined' ? `<p><a href="${String(ctx.certificateUrl)}" style="color:#2563eb">Download Certificate</a></p>` : ''}`,
         );
 
       case EmailTemplate.WEBINAR_PUBLISHED:
         return this.tpl(
           '📢 New Webinar Published',
-          `<p>Hi <strong>${ctx.name}</strong>,</p>
-           <p>A new webinar <strong>${ctx.webinarTitle}</strong> has been published!</p>
-           <p>Date: <strong>${ctx.webinarDate}</strong></p>
+          `<p>Hi <strong>${String(ctx.name)}</strong>,</p>
+           <p>A new webinar <strong>${String(ctx.webinarTitle)}</strong> has been published!</p>
+           <p>Date: <strong>${String(ctx.webinarDate)}</strong></p>
            <p>Don't miss out – register your spot today.</p>`,
         );
 
