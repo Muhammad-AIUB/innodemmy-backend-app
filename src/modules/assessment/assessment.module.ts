@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../shared/prisma/prisma.module';
 import { EnrollmentModule } from '../enrollments/enrollment.module';
+import { NotificationModule } from '../notification/notification.module';
 
 // Quiz domain
 import { QuizController } from './quiz/controllers/quiz.controller';
@@ -13,7 +14,7 @@ import { AssignmentService } from './assignment/services/assignment.service';
 import { AssignmentRepository } from './assignment/repositories/assignment.repository';
 
 @Module({
-  imports: [PrismaModule, EnrollmentModule],
+  imports: [PrismaModule, EnrollmentModule, NotificationModule],
   controllers: [QuizController, AssignmentController],
   providers: [
     QuizService,

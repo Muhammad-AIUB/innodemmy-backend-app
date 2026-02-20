@@ -1,10 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, Webinar, WebinarStatus } from '@prisma/client';
+import { PrismaService } from '../../shared/prisma/prisma.service';
 import { WebinarsRepository } from './webinars.repository';
 import { CreateWebinarDto } from './dto/create-webinar.dto';
 import { UpdateWebinarDto } from './dto/update-webinar.dto';
 import { ListWebinarsQueryDto } from './dto/list-webinars-query.dto';
 import { generateSlug } from '../../common/utils/slugify';
+import { NotificationService } from '../notification/services/notification.service';
 
 type PublicWebinarResponse = {
   title: string;
@@ -36,7 +38,13 @@ type PaginatedWebinarsResponse = {
 
 @Injectable()
 export class WebinarsService {
-  constructor(private readonly repo: WebinarsRepository) {}
+  private readonly logger = new Logger(WebinarsService.name);
+
+  constructor(
+    private readonly repo: WebinarsRepository,
+    private readonly prisma: PrismaService,
+    private readonly notificationService: NotificationService,
+  ) {}
 
   async create(dto: CreateWebinarDto): Promise<AdminWebinarResponse> {
     const slug = await this.generateUniqueSlug(dto.title);
@@ -186,7 +194,30 @@ export class WebinarsService {
 
     const published = await this.repo.publish(id);
 
+    // Fire-and-forget: send notifications to all active users
+    void this.fireWebinarPublishedNotification(published);
+
     return this.mapAdminResponse(published);
+  }
+
+  private async fireWebinarPublishedNotification(webinar: Webinar): Promise<void> {
+    try {
+      const recipients = await this.prisma.user.findMany({
+        where: { isActive: true, isDeleted: false },
+        select: { id: true, name: true, email: true },
+      });
+
+      if (recipients.length) {
+        await this.notificationService.onWebinarPublished({
+          webinar: { id: webinar.id, title: webinar.title, date: webinar.date },
+          recipients,
+        });
+      }
+    } catch (err) {
+      this.logger.error(
+        `[fireWebinarPublishedNotification] ${(err as Error).message}`,
+      );
+    }
   }
 
   async remove(id: string): Promise<void> {

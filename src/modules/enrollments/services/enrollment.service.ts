@@ -2,11 +2,13 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { Enrollment, EnrollmentStatus } from '@prisma/client';
 import { PrismaService } from '../../../shared/prisma/prisma.service';
 import { EnrollmentRepository } from '../repositories/enrollment.repository';
+import { NotificationService } from '../../notification/services/notification.service';
 
 export type EnrollmentResponse = {
   id: string;
@@ -30,9 +32,12 @@ function mapEnrollment(enrollment: Enrollment): EnrollmentResponse {
 
 @Injectable()
 export class EnrollmentService {
+  private readonly logger = new Logger(EnrollmentService.name);
+
   constructor(
     private readonly repo: EnrollmentRepository,
     private readonly prisma: PrismaService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   /**
@@ -134,7 +139,42 @@ export class EnrollmentService {
       EnrollmentStatus.ACTIVE,
     );
 
+    // Fire-and-forget: notification failure must not break enrollment
+    void this.fireEnrollmentActivatedNotification(
+      updated.userId,
+      updated.courseId,
+    );
+
     return mapEnrollment(updated);
+  }
+
+  private async fireEnrollmentActivatedNotification(
+    userId: string,
+    courseId: string,
+  ): Promise<void> {
+    try {
+      const [user, course] = await Promise.all([
+        this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true, name: true, email: true },
+        }),
+        this.prisma.course.findUnique({
+          where: { id: courseId },
+          select: { id: true, title: true },
+        }),
+      ]);
+
+      if (user && course) {
+        await this.notificationService.onEnrollmentActivated({
+          student: user,
+          course,
+        });
+      }
+    } catch (err) {
+      this.logger.error(
+        `[fireEnrollmentActivatedNotification] ${(err as Error).message}`,
+      );
+    }
   }
 
   /**

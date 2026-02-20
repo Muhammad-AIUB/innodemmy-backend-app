@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../shared/prisma/prisma.module';
+import { NotificationModule } from '../notification/notification.module';
 import { EnrollmentController } from './controllers/enrollment.controller';
 import { EnrollmentService } from './services/enrollment.service';
 import { EnrollmentRepository } from './repositories/enrollment.repository';
 import { EnrollmentGuard } from './guards/enrollment.guard';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, NotificationModule],
   controllers: [EnrollmentController],
   providers: [EnrollmentService, EnrollmentRepository, EnrollmentGuard],
   exports: [EnrollmentRepository, EnrollmentGuard],

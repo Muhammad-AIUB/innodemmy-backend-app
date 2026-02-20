@@ -2,9 +2,11 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
+import { PrismaService } from '../../../../shared/prisma/prisma.service';
 import { JwtPayload } from '../../../auth/strategies/jwt.strategy';
 import {
   AssignmentRepository,
@@ -14,10 +16,17 @@ import {
 } from '../repositories/assignment.repository';
 import { UpdateAssignmentDto } from '../dto/update-assignment.dto';
 import { SubmitAssignmentDto } from '../dto/submit-assignment.dto';
+import { NotificationService } from '../../../notification/services/notification.service';
 
 @Injectable()
 export class AssignmentService {
-  constructor(private readonly repo: AssignmentRepository) {}
+  private readonly logger = new Logger(AssignmentService.name);
+
+  constructor(
+    private readonly repo: AssignmentRepository,
+    private readonly prisma: PrismaService,
+    private readonly notificationService: NotificationService,
+  ) {}
 
   private validateOwnership(
     assignment: AssignmentWithOwnership,
@@ -66,11 +75,20 @@ export class AssignmentService {
     }
 
     try {
-      return await this.repo.createSubmission({
+      const submission = await this.repo.createSubmission({
         assignmentId,
         userId,
         fileUrl: dto.fileUrl,
       });
+
+      // Fire-and-forget: notification failure must not break submission flow
+      void this.fireAssignmentSubmittedNotification(
+        userId,
+        assignmentId,
+        assignment,
+      );
+
+      return submission;
     } catch (error) {
       if (
         error instanceof Error &&
@@ -98,5 +116,47 @@ export class AssignmentService {
     this.validateOwnership(assignment, user);
 
     return this.repo.findSubmissionsByAssignmentId(assignmentId);
+  }
+
+  // ─── PRIVATE HELPERS ─────────────────────────────────────────────────────
+
+  private async fireAssignmentSubmittedNotification(
+    studentId: string,
+    assignmentId: string,
+    assignment: AssignmentWithOwnership,
+  ): Promise<void> {
+    try {
+      const adminId = assignment.lesson.module.course.createdById;
+
+      const [student, admin, course] = await Promise.all([
+        this.prisma.user.findUnique({
+          where: { id: studentId },
+          select: { id: true, name: true, email: true },
+        }),
+        this.prisma.user.findUnique({
+          where: { id: adminId },
+          select: { id: true, name: true, email: true },
+        }),
+        this.prisma.course.findFirst({
+          where: {
+            modules: { some: { lessons: { some: { assignment: { id: assignmentId } } } } },
+          },
+          select: { title: true },
+        }),
+      ]);
+
+      if (student && admin) {
+        await this.notificationService.onAssignmentSubmitted({
+          student,
+          admin,
+          assignment: { id: assignment.id, title: assignment.title },
+          course: { title: course?.title ?? 'Unknown Course' },
+        });
+      }
+    } catch (err) {
+      this.logger.error(
+        `[fireAssignmentSubmittedNotification] ${(err as Error).message}`,
+      );
+    }
   }
 }
