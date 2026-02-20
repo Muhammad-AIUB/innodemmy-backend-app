@@ -50,39 +50,54 @@ enum LessonType {
   ASSIGNMENT
 }
 
+enum PaymentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
 //////////////////////////////////////////////////
 // USER + AUTH
 //////////////////////////////////////////////////
 
 model User {
-  id            String   @id @default(uuid())
-  name          String?
-  email         String   @unique
-  password      String?
-  phoneNumber   String?
+  id          String       @id @default(uuid())
+  name        String?
+  email       String       @unique
+  password    String?
+  phoneNumber String?
 
-  role          UserRole @default(STUDENT)
-  provider      AuthProvider @default(EMAIL)
-  googleId      String?  @unique
+  role     UserRole     @default(STUDENT)
+  provider AuthProvider @default(EMAIL)
+  googleId String?      @unique
 
-  isVerified    Boolean  @default(false)
-  isActive      Boolean  @default(true)
-  isDeleted     Boolean  @default(false)
+  isVerified Boolean @default(false)
+  isActive   Boolean @default(true)
+  isDeleted  Boolean @default(false)
 
   createdById   String?
-  createdBy     User?    @relation("AdminCreator", fields: [createdById], references: [id])
-  createdAdmins User[]   @relation("AdminCreator")
+  createdBy     User?  @relation("AdminCreator", fields: [createdById], references: [id], onUpdate: Cascade)
+  createdAdmins User[] @relation("AdminCreator")
 
-  createdCourses Course[]
+  createdCourses   Course[]
   adminEnrollments Enrollment[] @relation("AdminEnrollment")
 
-  enrollments   Enrollment[]
-  submissions   AssignmentSubmission[]
-  otpCodes      OtpCode[]
-  notifications Notification[]
+  enrollments      Enrollment[]
+  submissions      AssignmentSubmission[]
+  otpCodes         OtpCode[]
+  notifications    Notification[]
+  payments         Payment[]
+  reviewedPayments Payment[]        @relation("PaymentReviewer")
+  adminActions     AdminActionLog[]
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+  @@index([isDeleted])
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([provider])
 }
 
 model OtpCode {
@@ -92,10 +107,14 @@ model OtpCode {
   expiresAt DateTime
   isUsed    Boolean  @default(false)
 
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id])
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model PasswordResetToken {
@@ -106,6 +125,9 @@ model PasswordResetToken {
   isUsed    Boolean  @default(false)
 
   createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([expiresAt])
 }
 
 //////////////////////////////////////////////////
@@ -125,8 +147,14 @@ model Webinar {
   sectionTwoPoints String[]      @default([])
   status           WebinarStatus @default(DRAFT)
   isDeleted        Boolean       @default(false)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([isDeleted])
+  @@index([createdAt])
+  @@index([status, date])
 }
 
 //////////////////////////////////////////////////
@@ -134,33 +162,39 @@ model Webinar {
 //////////////////////////////////////////////////
 
 model Blog {
-  id              String      @id @default(uuid())
-  title           String
-  slug            String      @unique
-  excerpt         String?
-  content         Json
-  bannerImage     String?
-  readDuration    Int?
-  publishedAt     DateTime?
-  status          BlogStatus  @default(DRAFT)
-  isDeleted       Boolean     @default(false)
+  id           String     @id @default(uuid())
+  title        String
+  slug         String     @unique
+  excerpt      String?
+  content      Json
+  bannerImage  String?
+  readDuration Int?
+  publishedAt  DateTime?
+  status       BlogStatus @default(DRAFT)
+  isDeleted    Boolean    @default(false)
 
-  authorId        String
-  author          Author      @relation(fields: [authorId], references: [id])
+  authorId String
+  author   Author @relation(fields: [authorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
-  categoryId      String?
-  category        Category?   @relation(fields: [categoryId], references: [id])
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
-  tags            BlogTag[]
+  tags BlogTag[]
 
-  seoTitle        String?
-  seoDescription  String?
-  seoKeywords     String[]
+  seoTitle       String?
+  seoDescription String?
+  seoKeywords    String[]
 
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status])
+  @@index([publishedAt])
+  @@index([categoryId])
+  @@index([isDeleted])
+  @@index([createdAt])
+  @@index([authorId])
+  @@index([status, publishedAt])
 }
 
 model Author {
@@ -168,30 +202,46 @@ model Author {
   name      String
   bio       String?
   avatar    String?
+  isDeleted Boolean  @default(false)
   blogs     Blog[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+
+  @@index([isDeleted])
 }
 
 model Category {
   id        String   @id @default(uuid())
   name      String
   slug      String   @unique
+  isDeleted Boolean  @default(false)
   blogs     Blog[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+
+  @@index([isDeleted])
 }
 
 model Tag {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  blogs     BlogTag[]
+  id    String    @id @default(uuid())
+  name  String    @unique
+  blogs BlogTag[]
+
+  createdAt DateTime @default(now())
 }
 
 model BlogTag {
   blogId String
   tagId  String
 
-  blog   Blog @relation(fields: [blogId], references: [id])
-  tag    Tag  @relation(fields: [tagId], references: [id])
+  blog Blog @relation(fields: [blogId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@id([blogId, tagId])
+  @@index([blogId])
+  @@index([tagId])
 }
 
 //////////////////////////////////////////////////
@@ -214,59 +264,85 @@ model Course {
   totalProjects Int
   totalLive     Int
 
-  status        CourseStatus @default(DRAFT)
-  isDeleted     Boolean      @default(false)
+  status    CourseStatus @default(DRAFT)
+  isDeleted Boolean      @default(false)
 
-  createdById   String
-  createdBy     User         @relation(fields: [createdById], references: [id])
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
-  modules       CourseModule[]
-  instructors   CourseInstructor[]
-  enrollments   Enrollment[]
-  faqs          FAQ[]
+  bkashNumber String?
+  nagadNumber String?
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  modules     CourseModule[]
+  instructors CourseInstructor[]
+  enrollments Enrollment[]
+  payments    Payment[]
+  faqs        FAQ[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([isDeleted])
+  @@index([createdAt])
+  @@index([createdById])
+  @@index([status, createdAt])
 }
 
 model CourseModule {
-  id        String @id @default(uuid())
-  title     String
-  courseId  String
-  course    Course @relation(fields: [courseId], references: [id])
+  id       String @id @default(uuid())
+  title    String
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  lessons   Lesson[]
+  lessons Lesson[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([courseId])
 }
 
 model Lesson {
-  id        String     @id @default(uuid())
-  title     String
-  type      LessonType
-  videoUrl  String?
-  moduleId  String
-  module    CourseModule @relation(fields: [moduleId], references: [id])
+  id       String     @id @default(uuid())
+  title    String
+  type     LessonType
+  videoUrl String?
+  moduleId String
+  module   CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  quiz      Quiz?
+  quiz       Quiz?
   assignment Assignment?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([moduleId])
+  @@index([type])
 }
 
 model Quiz {
-  id       String  @id @default(uuid())
-  lessonId String  @unique
-  lesson   Lesson  @relation(fields: [lessonId], references: [id])
+  id       String @id @default(uuid())
+  lessonId String @unique
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  title    String
+  title String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Assignment {
-  id       String  @id @default(uuid())
-  lessonId String  @unique
-  lesson   Lesson  @relation(fields: [lessonId], references: [id])
-
-  title    String
+  id          String @id @default(uuid())
+  lessonId    String @unique
+  lesson      Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  title       String
   description String
 
   submissions AssignmentSubmission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model AssignmentSubmission {
@@ -275,12 +351,15 @@ model AssignmentSubmission {
   userId       String
   fileUrl      String
 
-  assignment Assignment @relation(fields: [assignmentId], references: [id])
-  user       User       @relation(fields: [userId], references: [id])
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([assignmentId, userId])
+  @@index([assignmentId])
+  @@index([userId])
 }
 
 model Instructor {
@@ -288,18 +367,26 @@ model Instructor {
   name      String
   image     String?
   bio       String?
+  isDeleted Boolean  @default(false)
 
-  courses   CourseInstructor[]
+  courses CourseInstructor[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isDeleted])
 }
 
 model CourseInstructor {
   courseId     String
   instructorId String
 
-  course       Course     @relation(fields: [courseId], references: [id])
-  instructor   Instructor @relation(fields: [instructorId], references: [id])
+  course     Course     @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  instructor Instructor @relation(fields: [instructorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@id([courseId, instructorId])
+  @@index([courseId])
+  @@index([instructorId])
 }
 
 model FAQ {
@@ -307,24 +394,35 @@ model FAQ {
   question String
   answer   String
   courseId String
-  course   Course @relation(fields: [courseId], references: [id])
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([courseId])
 }
 
 model Enrollment {
-  id        String @id @default(uuid())
-  userId    String
-  courseId  String
-  status    EnrollmentStatus @default(PENDING)
+  id       String           @id @default(uuid())
+  userId   String
+  courseId String
+  status   EnrollmentStatus @default(PENDING)
 
   enrolledById String?
-  enrolledBy   User? @relation("AdminEnrollment", fields: [enrolledById], references: [id])
+  enrolledBy   User?   @relation("AdminEnrollment", fields: [enrolledById], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
-  user      User   @relation(fields: [userId], references: [id])
-  course    Course @relation(fields: [courseId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([enrolledById])
 }
 
 //////////////////////////////////////////////////
@@ -332,14 +430,69 @@ model Enrollment {
 //////////////////////////////////////////////////
 
 model Notification {
-  id        String   @id @default(uuid())
-  userId    String
-  title     String
-  message   String
-  isRead    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id      String  @id @default(uuid())
+  userId  String
+  title   String
+  message String
+  isRead  Boolean @default(false)
 
-  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([userId, isRead])
+}
+
+//////////////////////////////////////////////////
+// PAYMENT
+//////////////////////////////////////////////////
+
+model Payment {
+  id           String        @id @default(uuid())
+  userId       String
+  courseId     String
+  slipUrl      String
+  status       PaymentStatus @default(PENDING)
+  adminNote    String?
+  reviewedById String?
+
+  user       User   @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  course     Course @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  reviewedBy User?  @relation("PaymentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([courseId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([reviewedById])
+  @@index([status, createdAt])
+}
+
+//////////////////////////////////////////////////
+// ADMIN ACTION LOG
+//////////////////////////////////////////////////
+
+model AdminActionLog {
+  id       String @id @default(uuid())
+  adminId  String
+  action   String
+  entity   String
+  entityId String
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  admin User @relation(fields: [adminId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([adminId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@index([action])
 }

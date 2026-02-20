@@ -17,6 +17,7 @@ export enum EmailTemplate {
   COURSE_COMPLETED = 'course_completed',
   CERTIFICATE_GENERATED = 'certificate_generated',
   WEBINAR_PUBLISHED = 'webinar_published',
+  PAYMENT_REJECTED = 'payment_rejected',
 }
 
 @Injectable()
@@ -152,6 +153,15 @@ export class MailService {
            <p>A new webinar <strong>${String(ctx.webinarTitle)}</strong> has been published!</p>
            <p>Date: <strong>${String(ctx.webinarDate)}</strong></p>
            <p>Don't miss out – register your spot today.</p>`,
+        );
+
+      case EmailTemplate.PAYMENT_REJECTED:
+        return this.tpl(
+          '❌ Payment Rejected',
+          `<p>Hi <strong>${String(ctx.name)}</strong>,</p>
+           <p>Your payment for <strong>${String(ctx.courseName)}</strong> has been <span style="color:#dc2626">rejected</span>.</p>
+           <p>Please verify your payment details and re-submit a valid payment slip.</p>
+           <p>If you believe this is a mistake, please contact our support team.</p>`,
         );
 
       default:

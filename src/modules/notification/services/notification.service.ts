@@ -33,6 +33,11 @@ export interface CertificateGeneratedPayload {
   certificateUrl?: string;
 }
 
+export interface PaymentRejectedPayload {
+  student: { id: string; name: string | null; email: string };
+  course: { id: string; title: string };
+}
+
 export interface WebinarPublishedPayload {
   webinar: { id: string; title: string; date: Date };
   recipients: { id: string; name: string | null; email: string }[];
@@ -278,6 +283,34 @@ export class NotificationService {
 
     this.logger.log(
       `[WEBINAR_PUBLISHED] webinar=${webinar.id} recipients=${recipients.length}`,
+    );
+  }
+
+  // ─── EVENT: PAYMENT REJECTED ────────────────────────────────────────────
+
+  async onPaymentRejected(payload: PaymentRejectedPayload): Promise<void> {
+    const { student, course } = payload;
+
+    // 1. In-app notification
+    await this.repo.create({
+      userId: student.id,
+      title: 'Payment Rejected',
+      message: `Your payment for "${course.title}" has been rejected. Please re-submit a valid payment slip.`,
+    });
+
+    // 2. Email notification
+    await this.mail.send({
+      to: student.email,
+      subject: `Payment rejected for "${course.title}"`,
+      template: EmailTemplate.PAYMENT_REJECTED,
+      context: {
+        name: student.name ?? student.email,
+        courseName: course.title,
+      },
+    });
+
+    this.logger.log(
+      `[PAYMENT_REJECTED] student=${student.id} course=${course.id}`,
     );
   }
 }

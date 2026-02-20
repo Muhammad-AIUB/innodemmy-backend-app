@@ -200,7 +200,9 @@ export class WebinarsService {
     return this.mapAdminResponse(published);
   }
 
-  private async fireWebinarPublishedNotification(webinar: Webinar): Promise<void> {
+  private async fireWebinarPublishedNotification(
+    webinar: Webinar,
+  ): Promise<void> {
     try {
       const recipients = await this.prisma.user.findMany({
         where: { isActive: true, isDeleted: false },

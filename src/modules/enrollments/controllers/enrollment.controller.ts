@@ -8,12 +8,17 @@ import {
   Post,
   Req,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 import { JwtGuard } from '../../auth/guards/jwt.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
+import {
+  AdminAudit,
+  AdminAuditInterceptor,
+} from '../../../common/interceptors/admin-audit.interceptor';
 import { EnrollmentService } from '../services/enrollment.service';
 import { AdminEnrollDto } from '../dto/admin-enroll.dto';
 import { Request } from 'express';
@@ -73,6 +78,12 @@ export class EnrollmentController {
    */
   @Patch(':id/activate')
   @UseGuards(JwtGuard, RolesGuard)
+  @UseInterceptors(AdminAuditInterceptor)
+  @AdminAudit({
+    action: 'ENROLLMENT_ACTIVATED',
+    entity: 'Enrollment',
+    entityIdParam: 'id',
+  })
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiOperation({ summary: 'Activate an enrollment (admin)' })
   async activate(@Param('id') id: string) {

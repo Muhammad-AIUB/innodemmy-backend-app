@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { AuthProvider, User, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { AuthRepository } from '../repositories/auth.repository';
+import { OtpBruteforceGuard } from '../../../common/guards/otp-bruteforce.guard';
 import { SendOtpDto } from '../dto/send-otp.dto';
 import { VerifyOtpDto } from '../dto/verify-otp.dto';
 import { RegisterDto } from '../dto/register.dto';
@@ -20,6 +21,7 @@ export class AuthService {
   constructor(
     private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService,
+    private readonly otpBruteforce: OtpBruteforceGuard,
   ) {}
 
   // ─── PRIVATE HELPERS ──────────────────────────────────────────────────────
@@ -82,10 +84,12 @@ export class AuthService {
 
     const otp = await this.authRepository.findLatestValidOtp(email, code);
     if (!otp) {
+      this.otpBruteforce.recordFailedAttempt(email);
       throw new BadRequestException('Invalid or expired OTP.');
     }
 
     await this.authRepository.markOtpUsed(otp.id);
+    this.otpBruteforce.clearAttempts(email);
 
     return { message: 'OTP verified successfully.' };
   }

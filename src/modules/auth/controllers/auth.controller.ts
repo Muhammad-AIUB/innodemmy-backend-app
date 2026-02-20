@@ -18,6 +18,8 @@ import { AuthService } from '../services/auth.service';
 import { JwtGuard } from '../guards/jwt.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
+import { RateLimit } from '../../../common/decorators/rate-limit.decorator';
+import { OtpBruteforceGuard } from '../../../common/guards/otp-bruteforce.guard';
 import { SendOtpDto } from '../dto/send-otp.dto';
 import { VerifyOtpDto } from '../dto/verify-otp.dto';
 import { RegisterDto } from '../dto/register.dto';
@@ -33,6 +35,7 @@ export class AuthController {
   // ─── OTP FLOW ─────────────────────────────────────────────────────────────
 
   @Post('send-otp')
+  @RateLimit({ max: 3, timeWindow: '1 minute' })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Send a 6-digit OTP to the provided email' })
   @ApiResponse({ status: 200, description: 'OTP sent successfully.' })
@@ -42,6 +45,8 @@ export class AuthController {
   }
 
   @Post('verify-otp')
+  @RateLimit({ max: 3, timeWindow: '1 minute' })
+  @UseGuards(OtpBruteforceGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Verify the OTP sent to the email' })
   @ApiResponse({ status: 200, description: 'OTP verified successfully.' })
@@ -54,6 +59,7 @@ export class AuthController {
   // ─── REGISTRATION ─────────────────────────────────────────────────────────
 
   @Post('register')
+  @RateLimit({ max: 5, timeWindow: '1 minute' })
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Register a new student account' })
   @ApiResponse({ status: 201, description: 'User registered successfully.' })
@@ -66,6 +72,7 @@ export class AuthController {
   // ─── LOGIN ────────────────────────────────────────────────────────────────
 
   @Post('login')
+  @RateLimit({ max: 5, timeWindow: '1 minute' })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiResponse({ status: 200, description: 'Login successful.' })
@@ -78,6 +85,7 @@ export class AuthController {
   // ─── GOOGLE LOGIN ─────────────────────────────────────────────────────────
 
   @Post('google')
+  @RateLimit({ max: 5, timeWindow: '1 minute' })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login or register using Google OAuth credentials' })
   @ApiResponse({ status: 200, description: 'Google login successful.' })

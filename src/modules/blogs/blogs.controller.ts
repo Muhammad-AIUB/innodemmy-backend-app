@@ -10,8 +10,13 @@ import {
   Patch,
   Post,
   Query,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  AdminAudit,
+  AdminAuditInterceptor,
+} from '../../common/interceptors/admin-audit.interceptor';
 import { BlogsService } from './blogs.service';
 import { CreateBlogDto } from './dto/create-blog.dto';
 import { PublishBlogDto } from './dto/publish-blog.dto';
@@ -65,6 +70,8 @@ export class BlogsAdminController {
   }
 
   @Patch(':id/publish')
+  @UseInterceptors(AdminAuditInterceptor)
+  @AdminAudit({ action: 'BLOG_PUBLISHED', entity: 'Blog', entityIdParam: 'id' })
   @ApiOperation({ summary: 'Publish blog by id' })
   @ApiResponse({ status: 200 })
   @ApiResponse({ status: 404, description: 'Blog not found' })

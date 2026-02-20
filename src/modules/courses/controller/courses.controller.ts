@@ -12,6 +12,7 @@ import {
   Query,
   Request,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -27,6 +28,10 @@ import { ListCoursesQueryDto } from '../queries/course.query';
 import { JwtGuard } from '../../auth/guards/jwt.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
+import {
+  AdminAudit,
+  AdminAuditInterceptor,
+} from '../../../common/interceptors/admin-audit.interceptor';
 
 @ApiTags('courses-public')
 @Controller('api/v1/courses')
@@ -54,12 +59,18 @@ export class CoursesPublicController {
 @ApiTags('courses-admin')
 @Controller('api/v1/courses')
 @UseGuards(JwtGuard, RolesGuard)
+@UseInterceptors(AdminAuditInterceptor)
 @ApiBearerAuth()
 export class CoursesAdminController {
   constructor(private readonly service: CoursesService) {}
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @AdminAudit({
+    action: 'COURSE_CREATED',
+    entity: 'Course',
+    entityIdFromResponse: 'data.id',
+  })
   @ApiOperation({ summary: 'Create course as DRAFT' })
   @ApiResponse({ status: 201 })
   async create(

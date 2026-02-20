@@ -80,10 +80,7 @@ export class AssignmentController {
   @ApiOperation({
     summary: 'View assignment submissions (admin/super-admin)',
   })
-  async getSubmissions(
-    @Param('id') id: string,
-    @Req() req: AuthRequest,
-  ) {
+  async getSubmissions(@Param('id') id: string, @Req() req: AuthRequest) {
     const data = await this.assignmentService.getSubmissions(id, req.user);
     return { success: true, data };
   }

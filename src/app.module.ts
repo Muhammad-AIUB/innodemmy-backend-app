@@ -12,6 +12,8 @@ import { EnrollmentModule } from './modules/enrollments/enrollment.module';
 import { CourseContentModule } from './modules/course-content/course-content.module';
 import { AssessmentModule } from './modules/assessment/assessment.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { PaymentModule } from './modules/payment/payment.module';
+import { BackupModule } from './modules/backup/backup.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { NotificationModule } from './modules/notification/notification.module';
     CourseContentModule,
     AssessmentModule,
     NotificationModule,
+    PaymentModule,
+    BackupModule,
   ],
   controllers: [AppController],
   providers: [AppService],

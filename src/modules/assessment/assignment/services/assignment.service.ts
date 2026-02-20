@@ -63,11 +63,7 @@ export class AssignmentService {
     });
   }
 
-  async submit(
-    assignmentId: string,
-    dto: SubmitAssignmentDto,
-    userId: string,
-  ) {
+  async submit(assignmentId: string, dto: SubmitAssignmentDto, userId: string) {
     const assignment = await this.repo.findByIdWithOwnership(assignmentId);
 
     if (!assignment) {
@@ -93,7 +89,7 @@ export class AssignmentService {
       if (
         error instanceof Error &&
         'code' in error &&
-        (error as any).code === 'P2002'
+        (error as { code?: string }).code === 'P2002'
       ) {
         throw new ConflictException(
           'You have already submitted this assignment.',
@@ -139,7 +135,9 @@ export class AssignmentService {
         }),
         this.prisma.course.findFirst({
           where: {
-            modules: { some: { lessons: { some: { assignment: { id: assignmentId } } } } },
+            modules: {
+              some: { lessons: { some: { assignment: { id: assignmentId } } } },
+            },
           },
           select: { title: true },
         }),

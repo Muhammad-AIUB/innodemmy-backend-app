@@ -4,6 +4,7 @@ import {
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
 import rateLimit from '@fastify/rate-limit';
+import helmet from '@fastify/helmet';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -13,7 +14,7 @@ async function bootstrap() {
     AppModule,
     new FastifyAdapter({
       logger: process.env.NODE_ENV === 'production',
-      trustProxy: true, // Important for Render / Reverse Proxy
+      trustProxy: true,
     }),
   );
 
@@ -29,20 +30,45 @@ async function bootstrap() {
     }),
   );
 
-  // Rate limiting (safer production config)
+  // ─── HELMET SECURITY HEADERS ──────────────────────────────────────────────
+  await app.register(helmet, {
+    contentSecurityPolicy: process.env.NODE_ENV === 'production',
+    crossOriginEmbedderPolicy: false,
+    hsts: {
+      maxAge: 31536000, // 1 year
+      includeSubDomains: true,
+      preload: true,
+    },
+    frameguard: { action: 'deny' },
+    xContentTypeOptions: true,
+    hidePoweredBy: true,
+  });
+
+  // ─── RATE LIMITING ────────────────────────────────────────────────────────
+  // Global: 100 req/min. Route-specific overrides via routeConfig.
   await app.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
     keyGenerator: (req) => (req.headers['x-forwarded-for'] as string) || req.ip,
+    addHeadersOnExceeding: {
+      'x-ratelimit-limit': true,
+      'x-ratelimit-remaining': true,
+      'x-ratelimit-reset': true,
+    },
+    errorResponseBuilder: () => ({
+      success: false,
+      message: 'Too many requests. Please try again later.',
+    }),
   });
 
-  // Strict CORS
+  // ─── STRICT CORS ──────────────────────────────────────────────────────────
   const allowedOrigins = process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',')
+    ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
     : ['http://localhost:3000'];
 
   app.enableCors({
     origin: (origin, callback) => {
+      // Allow server-to-server (no origin) or whitelisted origins
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -50,6 +76,14 @@ async function bootstrap() {
       }
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: [
+      'X-RateLimit-Limit',
+      'X-RateLimit-Remaining',
+      'X-RateLimit-Reset',
+    ],
+    maxAge: 86400,
   });
 
   // Swagger only in non-production
