@@ -17,6 +17,9 @@ async function bootstrap() {
     }),
   );
 
+  // Global route prefix
+  app.setGlobalPrefix('api/v1');
+
   // Global validation
   app.useGlobalPipes(
     new ValidationPipe({
@@ -55,6 +58,7 @@ async function bootstrap() {
       .setTitle('Innodemmy API')
       .setDescription('Backend service')
       .setVersion('1.0')
+      .addBearerAuth()
       .build();
 
     const document = SwaggerModule.createDocument(app, config);

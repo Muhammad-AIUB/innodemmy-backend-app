@@ -5,11 +5,13 @@ import { AppService } from './app.service';
 import { PrismaModule } from './shared/prisma/prisma.module';
 import { WebinarsModule } from './modules/webinars/webinars.module';
 import { BlogsModule } from './modules/blogs/blogs.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    AuthModule,
     WebinarsModule,
     BlogsModule,
   ],
