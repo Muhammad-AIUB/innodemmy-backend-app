@@ -81,7 +81,12 @@ export class CoursesAdminController {
     @Body() dto: UpdateCourseDto,
     @Request() req: { user: { sub: string; role: UserRole } },
   ) {
-    const data = await this.service.update(id, dto, req.user.sub, req.user.role);
+    const data = await this.service.update(
+      id,
+      dto,
+      req.user.sub,
+      req.user.role,
+    );
     return { success: true, data };
   }
 

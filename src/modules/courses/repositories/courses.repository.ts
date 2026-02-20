@@ -92,10 +92,7 @@ export class CoursesRepository {
     return this.prisma.course.count({ where });
   }
 
-  async update(
-    id: string,
-    data: Prisma.CourseUpdateInput,
-  ): Promise<Course> {
+  async update(id: string, data: Prisma.CourseUpdateInput): Promise<Course> {
     return this.prisma.course.update({
       where: { id },
       data,

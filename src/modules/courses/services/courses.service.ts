@@ -210,11 +210,7 @@ export class CoursesService {
     return this.mapAdminResponse(published);
   }
 
-  async remove(
-    id: string,
-    userId: string,
-    userRole: UserRole,
-  ): Promise<void> {
+  async remove(id: string, userId: string, userRole: UserRole): Promise<void> {
     await this.ensureExistsAndAuthorized(id, userId, userRole);
 
     await this.repo.softDelete(id);
