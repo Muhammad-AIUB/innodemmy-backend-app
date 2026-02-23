@@ -34,7 +34,7 @@ import {
 } from '../../../common/interceptors/admin-audit.interceptor';
 
 @ApiTags('courses-public')
-@Controller('api/v1/courses')
+@Controller('courses')
 export class CoursesPublicController {
   constructor(private readonly service: CoursesService) {}
 

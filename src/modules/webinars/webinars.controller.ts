@@ -18,7 +18,7 @@ import { UpdateWebinarDto } from './dto/update-webinar.dto';
 import { ListWebinarsQueryDto } from './dto/list-webinars-query.dto';
 
 @ApiTags('webinars')
-@Controller('api/v1/webinars')
+@Controller('webinars')
 export class WebinarsController {
   constructor(private readonly service: WebinarsService) {}
 

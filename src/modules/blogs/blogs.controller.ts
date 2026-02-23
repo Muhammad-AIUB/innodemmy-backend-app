@@ -24,7 +24,7 @@ import { UpdateBlogDto } from './dto/update-blog.dto';
 import { ListBlogsQueryDto } from './queries/blog.query';
 
 @ApiTags('blogs-public')
-@Controller('api/v1/blogs')
+@Controller('blogs')
 export class BlogsPublicController {
   constructor(private readonly service: BlogsService) {}
 
@@ -47,7 +47,7 @@ export class BlogsPublicController {
 }
 
 @ApiTags('blogs-admin')
-@Controller('api/v1/admin/blogs')
+@Controller('admin/blogs')
 export class BlogsAdminController {
   constructor(private readonly service: BlogsService) {}
 
