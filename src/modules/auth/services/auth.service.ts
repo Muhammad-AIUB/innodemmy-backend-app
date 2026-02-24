@@ -2,6 +2,8 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  NotFoundException,
+  ForbiddenException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -52,6 +54,8 @@ export class AuthService {
       role: user.role,
       provider: user.provider,
       isVerified: user.isVerified,
+      isActive: user.isActive,
+      isDeleted: user.isDeleted,
       createdAt: user.createdAt,
     };
   }
@@ -210,5 +214,88 @@ export class AuthService {
 
     return { user: this.sanitizeUser(user) };
   }
-}
 
+  // â”€â”€â”€ SUPER ADMIN USER MANAGEMENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  async listUsers(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    role?: string;
+    sortBy?: string;
+    order?: string;
+    isActive?: string;
+    isDeleted?: string;
+  }): Promise<{
+    users: object[];
+    page: number;
+    limit: number;
+    total: number;
+    role?: string;
+    sortBy: string;
+    order: 'asc' | 'desc';
+    isActive?: string;
+    isDeleted?: string;
+  }> {
+    const page = params?.page && params.page > 0 ? params.page : 1;
+    const limit = params?.limit && params.limit > 0 ? params.limit : 20;
+
+    const { users, total } = await this.authRepository.findAllUsers({
+      page,
+      limit,
+      search: params?.search,
+      role: params?.role,
+      sortBy: params?.sortBy,
+      order: params?.order,
+      isActive: params?.isActive,
+      isDeleted: params?.isDeleted,
+    });
+
+    return {
+      users: users.map((u) => this.sanitizeUser(u)),
+      page,
+      limit,
+      total,
+      role: params?.role,
+      sortBy: params?.sortBy ?? 'createdAt',
+      order: params?.order === 'asc' ? 'asc' : 'desc',
+      isActive: params?.isActive,
+      isDeleted: params?.isDeleted,
+    };
+  }
+
+  async promoteToAdmin(userId: string): Promise<{ user: object }> {
+    const user = await this.authRepository.findUserById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    if (user.role === UserRole.SUPER_ADMIN) {
+      throw new ForbiddenException('Cannot change role of a SUPER_ADMIN.');
+    }
+
+    const updated = await this.authRepository.updateUserRole(
+      userId,
+      UserRole.ADMIN,
+    );
+    return { user: this.sanitizeUser(updated) };
+  }
+
+  async deleteAdmin(userId: string): Promise<{ message: string }> {
+    const user = await this.authRepository.findUserById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    if (user.role === UserRole.SUPER_ADMIN) {
+      throw new ForbiddenException('Cannot delete a SUPER_ADMIN.');
+    }
+
+    if (user.role !== UserRole.ADMIN) {
+      throw new BadRequestException('User is not an admin.');
+    }
+
+    await this.authRepository.deactivateUser(userId);
+    return { message: 'Admin deleted successfully.' };
+  }
+}

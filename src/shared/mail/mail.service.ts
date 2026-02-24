@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
-import { Transporter } from 'nodemailer';
 
 export interface SendMailOptions {
   to: string | string[];
@@ -23,7 +22,7 @@ export enum EmailTemplate {
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private readonly transporter: Transporter;
+  private readonly transporter: ReturnType<typeof nodemailer.createTransport>;
 
   constructor(private readonly config: ConfigService) {
     const host = this.config.get<string>('MAIL_HOST');
@@ -37,8 +36,17 @@ export class MailService {
       port,
       secure,
       auth: { user, pass },
+      logger: true,
+      debug: true,
     });
     this.logger.log('SMTP transporter initialized');
+
+    this.transporter
+      .verify()
+      .then(() => this.logger.log('SMTP transporter verified'))
+      .catch((err) =>
+        this.logger.error(`SMTP verify failed: ${(err as Error).message}`),
+      );
   }
 
   // ─── SEND ───────────────────────────────────────────────────────────────
@@ -51,16 +59,17 @@ export class MailService {
         this.config.get<string>('MAIL_FROM') ??
         `"Innodemmy LMS" <no-reply@innodemmy.com>`;
 
-      await this.transporter.sendMail({
+      const info = (await this.transporter.sendMail({
         from,
         to: Array.isArray(options.to) ? options.to.join(', ') : options.to,
         subject: options.subject,
         html,
-      });
+      })) as unknown;
 
       this.logger.log(
         `Email sent -> [${options.subject}] to ${Array.isArray(options.to) ? options.to.join(', ') : options.to}`,
       );
+      this.logSendInfo('Email response', info);
     } catch (err) {
       this.logger.error(`Failed to send email: ${(err as Error).message}`);
     }
@@ -74,7 +83,7 @@ export class MailService {
       `"Innodemmy LMS" <no-reply@innodemmy.com>`;
 
     try {
-      await this.transporter.sendMail({
+      const info = (await this.transporter.sendMail({
         from,
         to,
         subject: 'SMTP Test Mail',
@@ -82,8 +91,9 @@ export class MailService {
           'SMTP Test Mail',
           '<p>This is a test email sent from the Innodemmy backend to verify SMTP configuration.</p>',
         ),
-      });
+      })) as unknown;
       this.logger.log(`Test email sent -> ${to}`);
+      this.logSendInfo('Test email response', info);
     } catch (err) {
       this.logger.error(`Failed to send test email: ${(err as Error).message}`);
     }
@@ -95,16 +105,66 @@ export class MailService {
       `"Innodemmy LMS" <no-reply@innodemmy.com>`;
 
     try {
-      await this.transporter.sendMail({
+      const info = (await this.transporter.sendMail({
         from,
         to: email,
         subject: 'Your OTP Code',
         html: `<h2>Your OTP is: ${otp}</h2><p>This OTP will expire in 5 minutes.</p>`,
-      });
+      })) as unknown;
       this.logger.log(`OTP email sent -> ${email}`);
+      this.logSendInfo('OTP email response', info);
     } catch (err) {
       this.logger.error(`Failed to send OTP email: ${(err as Error).message}`);
     }
+  }
+
+  private logSendInfo(label: string, info: unknown): void {
+    if (!this.isSentMessageInfo(info)) {
+      this.logger.debug(`${label} -> (unavailable)`);
+      return;
+    }
+    const accepted = this.formatAddressList(info.accepted);
+    const rejected = this.formatAddressList(info.rejected);
+    const messageId = typeof info.messageId === 'string' ? info.messageId : '';
+    const response = typeof info.response === 'string' ? info.response : '';
+    this.logger.debug(
+      `${label} -> messageId=${messageId} accepted=${accepted} rejected=${rejected} response=${response}`,
+    );
+  }
+
+  private isSentMessageInfo(value: unknown): value is {
+    accepted?: unknown;
+    rejected?: unknown;
+    messageId?: unknown;
+    response?: unknown;
+  } {
+    return !!value && typeof value === 'object';
+  }
+
+  private formatAddressList(value: unknown): string {
+    if (!value) {
+      return '';
+    }
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => this.formatAddressItem(item))
+        .filter((item) => item.length > 0)
+        .join(', ');
+    }
+    return this.formatAddressItem(value);
+  }
+
+  private formatAddressItem(value: unknown): string {
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (value && typeof value === 'object') {
+      const maybeAddress = value as { address?: unknown };
+      if (typeof maybeAddress.address === 'string') {
+        return maybeAddress.address;
+      }
+    }
+    return '';
   }
 
   // ─── HTML BUILDER ────────────────────────────────────────────────────────

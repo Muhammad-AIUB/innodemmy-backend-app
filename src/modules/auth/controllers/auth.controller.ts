@@ -1,9 +1,13 @@
 import {
   Body,
   Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -112,6 +116,62 @@ export class AuthController {
     @Request() req: { user: { sub: string } },
   ) {
     const data = await this.authService.createAdmin(dto, req.user.sub);
+    return { success: true, data };
+  }
+
+  // â”€â”€â”€ SUPER ADMIN USER MANAGEMENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  @Get('users')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List all users (SUPER_ADMIN only)' })
+  @ApiResponse({ status: 200, description: 'Users fetched successfully.' })
+  async listUsers(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('role') role?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('order') order?: string,
+    @Query('isActive') isActive?: string,
+    @Query('isDeleted') isDeleted?: string,
+  ) {
+    const data = await this.authService.listUsers({
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      search,
+      role,
+      sortBy,
+      order,
+      isActive,
+      isDeleted,
+    });
+    return { success: true, data };
+  }
+
+  @Post('users/:id/promote-admin')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Promote a user to admin (SUPER_ADMIN only)' })
+  @ApiResponse({ status: 200, description: 'User promoted to admin.' })
+  async promoteToAdmin(@Param('id') id: string) {
+    const data = await this.authService.promoteToAdmin(id);
+    return { success: true, data };
+  }
+
+  @Delete('admins/:id')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete an admin (SUPER_ADMIN only)' })
+  @ApiResponse({ status: 200, description: 'Admin deleted.' })
+  async deleteAdmin(@Param('id') id: string) {
+    const data = await this.authService.deleteAdmin(id);
     return { success: true, data };
   }
 }

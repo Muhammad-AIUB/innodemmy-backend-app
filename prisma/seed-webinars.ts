@@ -1,4 +1,11 @@
-import { PrismaClient, CourseCategory, WebinarStatus } from '@prisma/client';
+import {
+  PrismaClient,
+  CourseCategory,
+  WebinarStatus,
+  UserRole,
+  AuthProvider,
+} from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -184,6 +191,51 @@ const seedWebinars: SeedWebinar[] = [
 
 async function main() {
   try {
+    const superAdmins = [
+      {
+        name: 'Javed',
+        email: 'javed@innodemy.com',
+        password: 'javed2026@',
+      },
+      {
+        name: 'Shuvo',
+        email: 'shuvo@innodemy.com',
+        password: 'shuvo2026@',
+      },
+      {
+        name: 'Mehrab Munna',
+        email: 'mehrab.munna00@gmail.com',
+        password: 'mehrab2026@',
+      },
+    ];
+
+    for (const admin of superAdmins) {
+      const hashedPassword = await bcrypt.hash(admin.password, 12);
+      await prisma.user.upsert({
+        where: { email: admin.email },
+        update: {
+          name: admin.name,
+          password: hashedPassword,
+          role: UserRole.SUPER_ADMIN,
+          provider: AuthProvider.EMAIL,
+          isVerified: true,
+          isActive: true,
+          isDeleted: false,
+        },
+        create: {
+          name: admin.name,
+          email: admin.email,
+          password: hashedPassword,
+          role: UserRole.SUPER_ADMIN,
+          provider: AuthProvider.EMAIL,
+          isVerified: true,
+          isActive: true,
+          isDeleted: false,
+        },
+      });
+      console.log(`Upserted super admin: ${admin.email}`);
+    }
+
     for (const w of seedWebinars) {
       const slug = slugify(w.title);
       await prisma.webinar.upsert({
