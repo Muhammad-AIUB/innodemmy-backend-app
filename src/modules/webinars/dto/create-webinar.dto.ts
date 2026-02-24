@@ -10,7 +10,11 @@ import {
   ArrayMaxSize,
   ArrayNotEmpty,
   MaxLength,
+  IsUrl,
+  IsBoolean,
+  IsEnum,
 } from 'class-validator';
+import { CourseCategory } from '@prisma/client';
 
 export class CreateWebinarDto {
   @ApiProperty({ example: 'Intro to Clean Architecture' })
@@ -35,6 +39,46 @@ export class CreateWebinarDto {
   @IsInt({ message: 'duration must be an integer value in minutes' })
   @Min(1, { message: 'duration must be at least 1 minute' })
   duration: number;
+
+  @ApiProperty({ example: '/upcoming-webinar/ai-code.jpeg' })
+  @IsOptional()
+  @IsString()
+  image?: string;
+
+  @ApiProperty({ example: 'https://zoom.us/j/placeholder' })
+  @IsOptional()
+  @IsUrl({}, { message: 'videoUrl must be a valid URL' })
+  videoUrl?: string;
+
+  @ApiProperty({ example: '3:00 PM - 4:00 PM' })
+  @IsOptional()
+  @IsString()
+  time?: string;
+
+  @ApiProperty({ example: 'Arif Mahmud Sisir' })
+  @IsOptional()
+  @IsString()
+  instructor?: string;
+
+  @ApiProperty({ example: 'AI Engineering Expert & Technical Mentor...' })
+  @IsOptional()
+  @IsString()
+  instructorBio?: string;
+
+  @ApiProperty({ example: '/instructors/shishir.png' })
+  @IsOptional()
+  @IsString()
+  instructorImage?: string;
+
+  @ApiProperty({ example: CourseCategory.PROGRAMMING })
+  @IsOptional()
+  @IsEnum(CourseCategory)
+  category?: CourseCategory;
+
+  @ApiProperty({ example: true })
+  @IsOptional()
+  @IsBoolean()
+  isUpcoming?: boolean;
 
   @ApiProperty({ example: 'Section one' })
   @IsOptional()

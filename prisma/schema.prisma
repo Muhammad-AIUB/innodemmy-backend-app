@@ -27,6 +27,10 @@ enum WebinarStatus {
   PUBLISHED
 }
 
+enum CourseCategory {
+  PROGRAMMING
+}
+
 enum BlogStatus {
   DRAFT
   PUBLISHED
@@ -140,6 +144,14 @@ model Webinar {
   slug             String        @unique
   description      String
   date             DateTime
+  image            String?
+  videoUrl         String?
+  time             String?
+  instructor       String?
+  instructorBio    String?
+  instructorImage  String?
+  category         CourseCategory?
+  isUpcoming       Boolean       @default(false)
   duration         Int
   sectionOneTitle  String?
   sectionOnePoints String[]      @default([])
@@ -153,6 +165,8 @@ model Webinar {
 
   @@index([status])
   @@index([isDeleted])
+  @@index([isUpcoming])
+  @@index([category])
   @@index([createdAt])
   @@index([status, date])
   @@index([status, isDeleted])

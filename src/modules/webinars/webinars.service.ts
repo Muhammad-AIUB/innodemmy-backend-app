@@ -18,8 +18,14 @@ type PublicWebinarResponse = {
   title: string;
   slug: string;
   description: string;
+  image?: string | null;
   date: Date;
   duration: number;
+  time?: string | null;
+  instructor?: string | null;
+  instructorImage?: string | null;
+  category?: string | null;
+  isUpcoming?: boolean;
   sectionOneTitle: string | null;
   sectionOnePoints: string[];
   sectionTwoTitle: string | null;
@@ -320,8 +326,14 @@ export class WebinarsService {
       title: webinar.title,
       slug: webinar.slug,
       description: webinar.description,
+      image: webinar.image ?? null,
       date: webinar.date,
       duration: webinar.duration,
+      time: webinar.time ?? null,
+      instructor: webinar.instructor ?? null,
+      instructorImage: webinar.instructorImage ?? null,
+      category: (webinar as any).category ?? null,
+      isUpcoming: (webinar as any).isUpcoming ?? false,
       sectionOneTitle: webinar.sectionOneTitle,
       sectionOnePoints: webinar.sectionOnePoints,
       sectionTwoTitle: webinar.sectionTwoTitle,

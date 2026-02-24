@@ -5,6 +5,7 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
+
   "scripts": {
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev --name init",
@@ -23,6 +24,11 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
+
+  "prisma": {
+    "seed": "ts-node prisma/seed-webinars.ts"
+  },
+
   "dependencies": {
     "@fastify/helmet": "^13.0.2",
     "@fastify/rate-limit": "^10.3.0",
@@ -48,6 +54,7 @@
     "swagger-ui-express": "^5.0.1",
     "uuid": "^13.0.0"
   },
+
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
     "@eslint/js": "^9.39.1",
@@ -79,20 +86,15 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.48.1"
   },
+
   "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
+    "moduleFileExtensions": ["js", "json", "ts"],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
+    "collectCoverageFrom": ["**/*.(t|j)s"],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   }
