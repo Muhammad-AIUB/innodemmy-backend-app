@@ -27,10 +27,11 @@ export class MailService {
   private readonly isSmtpConfigured: boolean;
 
   constructor(private readonly config: ConfigService) {
-    const host = this.config.get<string>('SMTP_HOST');
-    const port = this.config.get<number>('SMTP_PORT');
-    const user = this.config.get<string>('SMTP_USER');
-    const pass = this.config.get<string>('SMTP_PASS');
+    const host = this.config.get<string>('MAIL_HOST');
+    const port = this.config.get<number>('MAIL_PORT');
+    const user = this.config.get<string>('MAIL_USER');
+    const pass = this.config.get<string>('MAIL_PASS');
+    const secure = this.config.get<string>('MAIL_SECURE') === 'true';
 
     this.isSmtpConfigured = !!(host && port && user && pass);
 
@@ -38,7 +39,7 @@ export class MailService {
       this.transporter = nodemailer.createTransport({
         host,
         port,
-        secure: port === 465,
+        secure,
         auth: { user, pass },
       });
       this.logger.log('✅ SMTP transporter initialized');
@@ -61,7 +62,7 @@ export class MailService {
 
     try {
       const from =
-        this.config.get<string>('SMTP_FROM') ??
+        this.config.get<string>('MAIL_FROM') ??
         `"Innodemmy LMS" <no-reply@innodemmy.com>`;
 
       await this.transporter.sendMail({
@@ -76,6 +77,31 @@ export class MailService {
       );
     } catch (err) {
       this.logger.error(`❌ Failed to send email: ${(err as Error).message}`);
+    }
+  }
+
+  // ─── TEST EMAIL ──────────────────────────────────────────────────────────
+
+  async sendTestEmail(to: string): Promise<void> {
+    const from =
+      this.config.get<string>('MAIL_FROM') ??
+      `"Innodemmy LMS" <no-reply@innodemmy.com>`;
+
+    if (!this.isSmtpConfigured || !this.transporter) {
+      this.logger.warn(`[TEST EMAIL SIMULATED] → ${to} | Subject: SMTP Test Mail`);
+      return;
+    }
+
+    try {
+      await this.transporter.sendMail({
+        from,
+        to,
+        subject: 'SMTP Test Mail',
+        html: this.tpl('SMTP Test Mail', '<p>This is a test email sent from the Innodemmy backend to verify SMTP configuration.</p>'),
+      });
+      this.logger.log(`📧 Test email sent → ${to}`);
+    } catch (err) {
+      this.logger.error(`❌ Failed to send test email: ${(err as Error).message}`);
     }
   }
 
