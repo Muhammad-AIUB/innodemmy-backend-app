@@ -23,8 +23,7 @@ export enum EmailTemplate {
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private transporter: Transporter | null = null;
-  private readonly isSmtpConfigured: boolean;
+  private readonly transporter: Transporter;
 
   constructor(private readonly config: ConfigService) {
     const host = this.config.get<string>('MAIL_HOST');
@@ -33,32 +32,19 @@ export class MailService {
     const pass = this.config.get<string>('MAIL_PASS');
     const secure = this.config.get<string>('MAIL_SECURE') === 'true';
 
-    this.isSmtpConfigured = !!(host && port && user && pass);
-
-    if (this.isSmtpConfigured) {
-      this.transporter = nodemailer.createTransport({
-        host,
-        port,
-        secure,
-        auth: { user, pass },
-      });
-      this.logger.log('✅ SMTP transporter initialized');
-    } else {
-      this.logger.warn(
-        '⚠️  SMTP not configured – emails will be simulated (logged only)',
-      );
-    }
+    this.transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: { user, pass },
+    });
+    this.logger.log('SMTP transporter initialized');
   }
 
   // ─── SEND ───────────────────────────────────────────────────────────────
 
   async send(options: SendMailOptions): Promise<void> {
     const html = this.buildHtml(options.template, options.context);
-
-    if (!this.isSmtpConfigured || !this.transporter) {
-      this.simulateSend(options, html);
-      return;
-    }
 
     try {
       const from =
@@ -73,10 +59,10 @@ export class MailService {
       });
 
       this.logger.log(
-        `📧 Email sent → [${options.subject}] to ${Array.isArray(options.to) ? options.to.join(', ') : options.to}`,
+        `Email sent -> [${options.subject}] to ${Array.isArray(options.to) ? options.to.join(', ') : options.to}`,
       );
     } catch (err) {
-      this.logger.error(`❌ Failed to send email: ${(err as Error).message}`);
+      this.logger.error(`Failed to send email: ${(err as Error).message}`);
     }
   }
 
@@ -87,42 +73,38 @@ export class MailService {
       this.config.get<string>('MAIL_FROM') ??
       `"Innodemmy LMS" <no-reply@innodemmy.com>`;
 
-    if (!this.isSmtpConfigured || !this.transporter) {
-      this.logger.warn(`[TEST EMAIL SIMULATED] → ${to} | Subject: SMTP Test Mail`);
-      return;
-    }
-
     try {
       await this.transporter.sendMail({
         from,
         to,
         subject: 'SMTP Test Mail',
-        html: this.tpl('SMTP Test Mail', '<p>This is a test email sent from the Innodemmy backend to verify SMTP configuration.</p>'),
+        html: this.tpl(
+          'SMTP Test Mail',
+          '<p>This is a test email sent from the Innodemmy backend to verify SMTP configuration.</p>',
+        ),
       });
-      this.logger.log(`📧 Test email sent → ${to}`);
+      this.logger.log(`Test email sent -> ${to}`);
     } catch (err) {
-      this.logger.error(`❌ Failed to send test email: ${(err as Error).message}`);
+      this.logger.error(`Failed to send test email: ${(err as Error).message}`);
     }
   }
 
-  // ─── SIMULATE ────────────────────────────────────────────────────────────
+  async sendOtpEmail(email: string, otp: string): Promise<void> {
+    const from =
+      this.config.get<string>('MAIL_FROM') ??
+      `"Innodemmy LMS" <no-reply@innodemmy.com>`;
 
-  private simulateSend(options: SendMailOptions, html: string): void {
-    this.logger.debug('─────────── [EMAIL SIMULATED] ───────────');
-    this.logger.debug(
-      `To      : ${Array.isArray(options.to) ? options.to.join(', ') : options.to}`,
-    );
-    this.logger.debug(`Subject : ${options.subject}`);
-    this.logger.debug(`Template: ${options.template}`);
-    this.logger.debug(`Context : ${JSON.stringify(options.context, null, 2)}`);
-    this.logger.debug('────────── [BEGIN HTML PREVIEW] ─────────');
-    this.logger.debug(
-      html
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim(),
-    );
-    this.logger.debug('─────────────────────────────────────────');
+    try {
+      await this.transporter.sendMail({
+        from,
+        to: email,
+        subject: 'Your OTP Code',
+        html: `<h2>Your OTP is: ${otp}</h2><p>This OTP will expire in 5 minutes.</p>`,
+      });
+      this.logger.log(`OTP email sent -> ${email}`);
+    } catch (err) {
+      this.logger.error(`Failed to send OTP email: ${(err as Error).message}`);
+    }
   }
 
   // ─── HTML BUILDER ────────────────────────────────────────────────────────

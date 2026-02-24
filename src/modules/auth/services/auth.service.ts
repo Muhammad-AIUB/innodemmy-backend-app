@@ -15,6 +15,7 @@ import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { GoogleLoginDto } from '../dto/google-login.dto';
 import { CreateAdminDto } from '../dto/create-admin.dto';
+import { MailService } from '../../../shared/mail/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -22,6 +23,7 @@ export class AuthService {
     private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService,
     private readonly otpBruteforce: OtpBruteforceGuard,
+    private readonly mailService: MailService,
   ) {}
 
   // ─── PRIVATE HELPERS ──────────────────────────────────────────────────────
@@ -67,12 +69,7 @@ export class AuthService {
 
     await this.authRepository.createOtp(email, code, expiresAt);
 
-    // Simulated email delivery
-    console.log(`\n📧 [OTP EMAIL SIMULATION]`);
-    console.log(`   To     : ${email}`);
-    console.log(`   Subject: Your OTP Code`);
-    console.log(`   Code   : ${code}`);
-    console.log(`   Expires: ${expiresAt.toISOString()}\n`);
+    await this.mailService.sendOtpEmail(email, code);
 
     return { message: 'OTP sent successfully. Check your email.' };
   }
@@ -214,3 +211,4 @@ export class AuthService {
     return { user: this.sanitizeUser(user) };
   }
 }
+
