@@ -1,8 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
-import { Transporter } from 'nodemailer';
-import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 
 export interface SendMailOptions {
   to: string | string[];
@@ -24,7 +22,7 @@ export enum EmailTemplate {
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
-  private readonly transporter: Transporter<SMTPTransport.SentMessageInfo>;
+  private readonly transporter: ReturnType<typeof nodemailer.createTransport>;
 
   constructor(private readonly config: ConfigService) {
     const host = this.config.get<string>('MAIL_HOST');
@@ -33,15 +31,14 @@ export class MailService {
     const pass = this.config.get<string>('MAIL_PASS');
     const secure = this.config.get<string>('MAIL_SECURE') === 'true';
 
-    this.transporter =
-      nodemailer.createTransport<SMTPTransport.SentMessageInfo>({
-        host,
-        port,
-        secure,
-        auth: { user, pass },
-        logger: true,
-        debug: true,
-      });
+    this.transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      auth: { user, pass },
+      logger: true,
+      debug: true,
+    });
     this.logger.log('SMTP transporter initialized');
 
     this.transporter
