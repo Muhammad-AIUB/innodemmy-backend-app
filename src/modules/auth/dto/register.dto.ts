@@ -6,6 +6,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsRealEmailDomain } from '../../../common/validators/email-domain.validator';
 
 export class RegisterDto {
   @ApiProperty({ example: 'John Doe' })
@@ -16,6 +17,7 @@ export class RegisterDto {
   @ApiProperty({ example: 'user@example.com' })
   @IsEmail({}, { message: 'Please provide a valid email address' })
   @IsNotEmpty()
+  @IsRealEmailDomain()
   email: string;
 
   @ApiProperty({ example: 'StrongPass@123', minLength: 8 })
