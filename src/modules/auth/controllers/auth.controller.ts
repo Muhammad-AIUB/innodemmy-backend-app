@@ -98,6 +98,23 @@ export class AuthController {
     return { success: true, data };
   }
 
+  // ─── CURRENT USER ─────────────────────────────────────────────────────────
+
+  @Get('me')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get the currently authenticated user' })
+  @ApiResponse({
+    status: 200,
+    description: 'Current user fetched successfully.',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  async getMe(@Request() req: { user: { sub: string } }) {
+    const data = await this.authService.getMe(req.user.sub);
+    return { success: true, data };
+  }
+
   // ─── ADMIN CREATION (SUPER_ADMIN only) ───────────────────────────────────
 
   @Post('create-admin')

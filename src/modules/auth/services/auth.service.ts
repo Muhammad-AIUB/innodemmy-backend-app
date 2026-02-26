@@ -60,6 +60,19 @@ export class AuthService {
     };
   }
 
+  // ─── GET CURRENT USER ─────────────────────────────────────────────────────
+
+  async getMe(userId: string): Promise<{ user: object }> {
+    const user = await this.authRepository.findUserById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+    if (!user.isActive) {
+      throw new ForbiddenException('Your account has been deactivated.');
+    }
+    return { user: this.sanitizeUser(user) };
+  }
+
   // ─── SEND OTP ─────────────────────────────────────────────────────────────
 
   async sendOtp(dto: SendOtpDto): Promise<{ message: string }> {
