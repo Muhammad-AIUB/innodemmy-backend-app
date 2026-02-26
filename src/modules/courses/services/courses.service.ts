@@ -211,6 +211,19 @@ export class CoursesService {
     );
   }
 
+  /**
+   * Admin preview lookup by slug — bypasses published-only filter.
+   * Returns any non-deleted course (DRAFT or PUBLISHED).
+   * Caller (controller) is responsible for verifying admin role.
+   */
+  async findBySlugForPreview(slug: string): Promise<PublicCourseResponse> {
+    const course = await this.repo.findBySlug(slug);
+    if (!course) {
+      throw new NotFoundException('Course not found');
+    }
+    return this.mapPublicResponse(course);
+  }
+
   async update(
     id: string,
     dto: UpdateCourseDto,

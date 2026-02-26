@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   HttpStatus,
@@ -27,6 +28,7 @@ import { UpdateCourseDto } from '../dto/update-course.dto';
 import { ListCoursesQueryDto } from '../queries/course.query';
 import { AdminListCoursesQueryDto } from '../queries/admin-course.query';
 import { JwtGuard } from '../../auth/guards/jwt.guard';
+import { OptionalJwtGuard } from '../../auth/guards/optional-jwt.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import {
@@ -48,10 +50,34 @@ export class CoursesPublicController {
   }
 
   @Get(':slug')
-  @ApiOperation({ summary: 'Get published course by slug' })
+  @UseGuards(OptionalJwtGuard)
+  @ApiOperation({ summary: 'Get course by slug (supports admin preview mode)' })
   @ApiResponse({ status: 200 })
   @ApiResponse({ status: 404, description: 'Course not found' })
-  async findPublishedBySlug(@Param('slug') slug: string) {
+  @ApiResponse({ status: 403, description: 'Preview requires admin role' })
+  async findBySlug(
+    @Param('slug') slug: string,
+    @Query('preview') preview?: string,
+    @Request() req?: { user?: { sub: string; role: UserRole } },
+  ) {
+    if (preview === 'true') {
+      // Preview mode: require authentication + admin role
+      if (!req?.user) {
+        throw new ForbiddenException(
+          'Authentication required for preview mode',
+        );
+      }
+
+      const { role } = req.user;
+      if (role !== UserRole.ADMIN && role !== UserRole.SUPER_ADMIN) {
+        throw new ForbiddenException('Only admins can access preview mode');
+      }
+
+      const data = await this.service.findBySlugForPreview(slug);
+      return { success: true, data };
+    }
+
+    // Default: published courses only
     const data = await this.service.findPublishedBySlug(slug);
     return { success: true, data };
   }

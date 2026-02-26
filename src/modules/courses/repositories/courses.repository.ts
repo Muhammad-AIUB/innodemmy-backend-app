@@ -62,6 +62,19 @@ export class CoursesRepository {
     });
   }
 
+  /**
+   * Find a non-deleted course by slug regardless of status.
+   * Used for admin preview mode.
+   */
+  async findBySlug(slug: string): Promise<Course | null> {
+    return this.prisma.course.findFirst({
+      where: {
+        slug,
+        isDeleted: false,
+      },
+    });
+  }
+
   async findSlugConflicts(
     baseSlug: string,
   ): Promise<Array<{ id: string; slug: string }>> {
