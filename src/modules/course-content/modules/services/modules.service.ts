@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -16,6 +17,7 @@ import { JwtPayload } from '../../../auth/strategies/jwt.strategy';
 export type ModuleResponse = {
   id: string;
   title: string;
+  order: number;
   courseId: string;
 };
 
@@ -83,9 +85,19 @@ export class ModulesService {
   ): Promise<ModuleResponse> {
     await this.validateCourseOwnership(courseId, user);
 
-    const mod = await this.repo.create({ courseId, title: dto.title });
+    const maxOrder = await this.repo.getMaxOrder(courseId);
+    const mod = await this.repo.create({
+      courseId,
+      title: dto.title,
+      order: maxOrder + 1,
+    });
 
-    return { id: mod.id, title: mod.title, courseId: mod.courseId };
+    return {
+      id: mod.id,
+      title: mod.title,
+      order: mod.order as number,
+      courseId: mod.courseId,
+    };
   }
 
   async update(
@@ -97,7 +109,12 @@ export class ModulesService {
 
     const updated = await this.repo.update(moduleId, { title: dto.title });
 
-    return { id: updated.id, title: updated.title, courseId: updated.courseId };
+    return {
+      id: updated.id,
+      title: updated.title,
+      order: updated.order as number,
+      courseId: updated.courseId,
+    };
   }
 
   /**
@@ -161,5 +178,67 @@ export class ModulesService {
     }
 
     return this.repo.findByCourseIdWithLessons(courseId);
+  }
+
+  /**
+   * Reorder a module by swapping its order with the adjacent module.
+   * Runs in a transaction to maintain unique ordering.
+   */
+  async reorder(
+    moduleId: string,
+    direction: 'up' | 'down',
+    user: JwtPayload,
+  ): Promise<void> {
+    const { courseId } = await this.validateModuleOwnership(moduleId, user);
+
+    await this.prisma.$transaction(async (tx) => {
+      // Get the current module
+      const current: { id: string; order: number } | null =
+        await tx.courseModule.findUnique({
+          where: { id: moduleId },
+          select: { id: true, order: true },
+        });
+
+      if (!current) {
+        throw new NotFoundException('Module not found.');
+      }
+
+      // Find the adjacent module to swap with
+      const adjacent: { id: string; order: number } | null =
+        await tx.courseModule.findFirst({
+          where: {
+            courseId,
+            order:
+              direction === 'up'
+                ? { lt: current.order }
+                : { gt: current.order },
+          },
+          orderBy: {
+            order: direction === 'up' ? 'desc' : 'asc',
+          },
+          select: { id: true, order: true },
+        });
+
+      if (!adjacent) {
+        throw new BadRequestException(
+          `Cannot move module ${direction}. It is already at the ${direction === 'up' ? 'top' : 'bottom'}.`,
+        );
+      }
+
+      // Swap orders using a temporary value to avoid unique constraint violation
+      const tempOrder = -1;
+      await tx.courseModule.update({
+        where: { id: current.id },
+        data: { order: tempOrder },
+      });
+      await tx.courseModule.update({
+        where: { id: adjacent.id },
+        data: { order: current.order },
+      });
+      await tx.courseModule.update({
+        where: { id: current.id },
+        data: { order: adjacent.order },
+      });
+    });
   }
 }

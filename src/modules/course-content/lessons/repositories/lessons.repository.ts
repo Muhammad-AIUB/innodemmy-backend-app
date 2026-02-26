@@ -16,6 +16,7 @@ export type LessonWithOwnership = Lesson & {
 export type LessonResult = {
   id: string;
   title: string;
+  order: number;
   type: LessonType;
   videoUrl: string | null;
   moduleId: string;
@@ -48,6 +49,7 @@ export class LessonsRepository {
       select: {
         id: true,
         title: true,
+        order: true,
         type: true,
         videoUrl: true,
         moduleId: true,
@@ -65,10 +67,27 @@ export class LessonsRepository {
       select: {
         id: true,
         title: true,
+        order: true,
         type: true,
         videoUrl: true,
         moduleId: true,
       },
     });
+  }
+
+  /**
+   * Get the maximum order value for lessons in a module.
+   */
+  async getMaxOrder(moduleId: string): Promise<number> {
+    const result: { _max: { order: number | null } } =
+      await this.prisma.lesson.aggregate({
+        where: { moduleId },
+        _max: { order: true },
+      });
+    const maxOrder = result._max.order;
+    if (typeof maxOrder === 'number' && !isNaN(maxOrder)) {
+      return maxOrder;
+    }
+    return -1;
   }
 }

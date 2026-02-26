@@ -22,6 +22,7 @@ import { JwtPayload } from '../../../auth/strategies/jwt.strategy';
 import { ModulesService } from '../services/modules.service';
 import { CreateModuleDto } from '../dto/create-module.dto';
 import { UpdateModuleDto } from '../dto/update-module.dto';
+import { ReorderDto } from '../../dto/reorder.dto';
 
 interface AuthRequest extends Request {
   user: JwtPayload;
@@ -101,5 +102,22 @@ export class ModulesController {
   })
   async delete(@Param('id') id: string, @Req() req: AuthRequest) {
     await this.modulesService.delete(id, req.user);
+  }
+
+  /**
+   * PATCH /api/v1/modules/:id/reorder
+   * ADMIN (owner) / SUPER_ADMIN — reorder a module within its course.
+   */
+  @Patch('modules/:id/reorder')
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Reorder a module up or down (admin/super-admin)' })
+  async reorder(
+    @Param('id') id: string,
+    @Body() dto: ReorderDto,
+    @Req() req: AuthRequest,
+  ) {
+    await this.modulesService.reorder(id, dto.direction, req.user);
+    return { success: true };
   }
 }

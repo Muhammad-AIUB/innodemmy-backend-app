@@ -9,6 +9,7 @@ export type ModuleWithCourse = CourseModule & {
 export type LessonSummary = {
   id: string;
   title: string;
+  order: number;
   type: LessonType;
   videoUrl: string | null;
   moduleId: string;
@@ -17,6 +18,7 @@ export type LessonSummary = {
 export type ModuleWithLessons = {
   id: string;
   title: string;
+  order: number;
   courseId: string;
   lessons: LessonSummary[];
 };
@@ -52,24 +54,43 @@ export class ModulesRepository {
   async findByCourseIdWithLessons(
     courseId: string,
   ): Promise<ModuleWithLessons[]> {
-    return this.prisma.courseModule.findMany({
+    const modules = await this.prisma.courseModule.findMany({
       where: { courseId },
-      select: {
-        id: true,
-        title: true,
-        courseId: true,
+      include: {
         lessons: {
-          select: {
-            id: true,
-            title: true,
-            type: true,
-            videoUrl: true,
-            moduleId: true,
-          },
+          orderBy: { createdAt: 'asc' },
         },
       },
-      orderBy: { id: 'asc' },
-    }) as Promise<ModuleWithLessons[]>;
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return modules.map((mod, modIndex) => ({
+      id: mod.id,
+      title: mod.title,
+      order: modIndex,
+      courseId: mod.courseId,
+      lessons: mod.lessons.map((lesson, lessonIndex) => ({
+        id: lesson.id,
+        title: lesson.title,
+        order: lessonIndex,
+        type: lesson.type,
+        videoUrl: lesson.videoUrl,
+        moduleId: lesson.moduleId,
+      })),
+    }));
+  }
+
+  /**
+   * Get the maximum order value for modules in a course.
+   */
+  async getMaxOrder(courseId: string): Promise<number> {
+    const result = await this.prisma.courseModule.findFirst({
+      where: { courseId },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    });
+    const count = await this.prisma.courseModule.count({ where: { courseId } });
+    return result ? count - 1 : -1;
   }
 
   async update(

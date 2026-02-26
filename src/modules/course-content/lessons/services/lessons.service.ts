@@ -107,17 +107,26 @@ export class LessonsService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      // 0. Get next order value
+      const maxOrderResult = await tx.lesson.aggregate({
+        where: { moduleId },
+        _max: { order: true },
+      });
+      const nextOrder = (maxOrderResult._max.order ?? -1) + 1;
+
       // 1. Create the core lesson record
       const lesson = await tx.lesson.create({
         data: {
           moduleId,
           title: dto.title,
           type: dto.type,
+          order: nextOrder,
           ...(dto.type === LessonType.VIDEO ? { videoUrl: dto.videoUrl } : {}),
         },
         select: {
           id: true,
           title: true,
+          order: true,
           type: true,
           videoUrl: true,
           moduleId: true,
@@ -191,6 +200,64 @@ export class LessonsService {
       }
 
       await tx.lesson.delete({ where: { id: lessonId } });
+    });
+  }
+
+  /**
+   * Reorder a lesson by swapping its order with the adjacent lesson.
+   * Runs in a transaction to maintain unique ordering.
+   */
+  async reorder(
+    lessonId: string,
+    direction: 'up' | 'down',
+    user: JwtPayload,
+  ): Promise<void> {
+    const lesson = await this.validateLessonOwnership(lessonId, user);
+
+    await this.prisma.$transaction(async (tx) => {
+      // Get the current lesson
+      const current = await tx.lesson.findUnique({
+        where: { id: lessonId },
+        select: { id: true, order: true, moduleId: true },
+      });
+
+      if (!current) {
+        throw new NotFoundException('Lesson not found.');
+      }
+
+      // Find the adjacent lesson to swap with
+      const adjacent = await tx.lesson.findFirst({
+        where: {
+          moduleId: current.moduleId,
+          order:
+            direction === 'up' ? { lt: current.order } : { gt: current.order },
+        },
+        orderBy: {
+          order: direction === 'up' ? 'desc' : 'asc',
+        },
+        select: { id: true, order: true },
+      });
+
+      if (!adjacent) {
+        throw new BadRequestException(
+          `Cannot move lesson ${direction}. It is already at the ${direction === 'up' ? 'top' : 'bottom'}.`,
+        );
+      }
+
+      // Swap orders using a temporary value to avoid unique constraint violation
+      const tempOrder = -1;
+      await tx.lesson.update({
+        where: { id: current.id },
+        data: { order: tempOrder },
+      });
+      await tx.lesson.update({
+        where: { id: adjacent.id },
+        data: { order: current.order },
+      });
+      await tx.lesson.update({
+        where: { id: current.id },
+        data: { order: adjacent.order },
+      });
     });
   }
 }

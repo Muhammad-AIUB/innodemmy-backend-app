@@ -20,6 +20,7 @@ import { JwtPayload } from '../../../auth/strategies/jwt.strategy';
 import { LessonsService } from '../services/lessons.service';
 import { CreateLessonDto } from '../dto/create-lesson.dto';
 import { UpdateLessonDto } from '../dto/update-lesson.dto';
+import { ReorderDto } from '../../dto/reorder.dto';
 
 interface AuthRequest extends Request {
   user: JwtPayload;
@@ -85,5 +86,22 @@ export class LessonsController {
   @ApiOperation({ summary: 'Delete a lesson (admin/super-admin)' })
   async delete(@Param('id') id: string, @Req() req: AuthRequest) {
     await this.lessonsService.delete(id, req.user);
+  }
+
+  /**
+   * PATCH /api/v1/lessons/:id/reorder
+   * ADMIN (owner) / SUPER_ADMIN — reorder a lesson within its module.
+   */
+  @Patch('lessons/:id/reorder')
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Reorder a lesson up or down (admin/super-admin)' })
+  async reorder(
+    @Param('id') id: string,
+    @Body() dto: ReorderDto,
+    @Req() req: AuthRequest,
+  ) {
+    await this.lessonsService.reorder(id, dto.direction, req.user);
+    return { success: true };
   }
 }
