@@ -25,6 +25,7 @@ import { CoursesService } from '../services/courses.service';
 import { CreateCourseDto } from '../dto/create-course.dto';
 import { UpdateCourseDto } from '../dto/update-course.dto';
 import { ListCoursesQueryDto } from '../queries/course.query';
+import { AdminListCoursesQueryDto } from '../queries/admin-course.query';
 import { JwtGuard } from '../../auth/guards/jwt.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
@@ -63,6 +64,22 @@ export class CoursesPublicController {
 @ApiBearerAuth()
 export class CoursesAdminController {
   constructor(private readonly service: CoursesService) {}
+
+  @Get()
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'List courses for admin (DRAFT + PUBLISHED)' })
+  @ApiResponse({ status: 200 })
+  async findAll(
+    @Query() query: AdminListCoursesQueryDto,
+    @Request() req: { user: { sub: string; role: UserRole } },
+  ) {
+    const result = await this.service.findAll(
+      query,
+      req.user.sub,
+      req.user.role,
+    );
+    return { success: true, ...result };
+  }
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)

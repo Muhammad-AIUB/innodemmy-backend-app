@@ -12,6 +12,7 @@ import {
 import { CreateCourseDto } from '../dto/create-course.dto';
 import { UpdateCourseDto } from '../dto/update-course.dto';
 import { ListCoursesQueryDto } from '../queries/course.query';
+import { AdminListCoursesQueryDto } from '../queries/admin-course.query';
 import { generateSlug } from '../../../common/utils/slugify';
 import { CacheService } from '../../../shared/cache/cache.service';
 
@@ -46,6 +47,15 @@ type AdminCourseResponse = PublicCourseResponse & {
 
 type PaginatedCoursesResponse = {
   data: PublicCourseResponse[];
+  meta: {
+    page: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
+type PaginatedAdminCoursesResponse = {
+  data: AdminCourseResponse[];
   meta: {
     page: number;
     total: number;
@@ -88,6 +98,47 @@ export class CoursesService {
     this.cache.delByPrefix(CACHE_PREFIX);
 
     return this.mapAdminResponse(course);
+  }
+
+  /**
+   * Admin listing — returns all non-deleted courses (DRAFT + PUBLISHED).
+   * ADMIN users only see their own courses; SUPER_ADMIN sees all.
+   */
+  async findAll(
+    query: AdminListCoursesQueryDto,
+    userId: string,
+    userRole: UserRole,
+  ): Promise<PaginatedAdminCoursesResponse> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const search = query.search?.trim() ?? '';
+    const skip = (page - 1) * limit;
+
+    const createdById = userRole === UserRole.SUPER_ADMIN ? undefined : userId;
+
+    const [items, total]: [CourseListItem[], number] = await Promise.all([
+      this.repo.findAll({
+        skip,
+        take: limit,
+        search: search || undefined,
+        status: query.status,
+        createdById,
+      }),
+      this.repo.countAll({
+        search: search || undefined,
+        status: query.status,
+        createdById,
+      }),
+    ]);
+
+    return {
+      data: items.map((item) => this.mapAdminResponse(item)),
+      meta: {
+        page,
+        total,
+        totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+      },
+    };
   }
 
   /**
@@ -336,7 +387,7 @@ export class CoursesService {
     };
   }
 
-  private mapAdminResponse(course: Course): AdminCourseResponse {
+  private mapAdminResponse(course: CourseListItem): AdminCourseResponse {
     return {
       id: course.id,
       ...this.mapPublicResponse(course),

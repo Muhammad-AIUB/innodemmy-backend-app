@@ -169,6 +169,52 @@ export class CoursesRepository {
     return this.prisma.course.count({ where });
   }
 
+  /**
+   * Admin listing — returns all non-deleted courses (DRAFT + PUBLISHED).
+   * Supports optional status filter and ownership scoping.
+   */
+  async findAll(params: {
+    skip: number;
+    take: number;
+    search?: string;
+    status?: CourseStatus;
+    createdById?: string;
+  }): Promise<CourseListItem[]> {
+    const { skip, take, search, status, createdById } = params;
+
+    const where: Prisma.CourseWhereInput = {
+      isDeleted: false,
+      ...(status ? { status } : {}),
+      ...(createdById ? { createdById } : {}),
+      ...(search ? { title: { contains: search, mode: 'insensitive' } } : {}),
+    };
+
+    return this.prisma.course.findMany({
+      where,
+      skip,
+      take,
+      orderBy: { createdAt: 'desc' },
+      select: courseListSelect,
+    });
+  }
+
+  async countAll(params: {
+    search?: string;
+    status?: CourseStatus;
+    createdById?: string;
+  }): Promise<number> {
+    const { search, status, createdById } = params;
+
+    const where: Prisma.CourseWhereInput = {
+      isDeleted: false,
+      ...(status ? { status } : {}),
+      ...(createdById ? { createdById } : {}),
+      ...(search ? { title: { contains: search, mode: 'insensitive' } } : {}),
+    };
+
+    return this.prisma.course.count({ where });
+  }
+
   async update(id: string, data: Prisma.CourseUpdateInput): Promise<Course> {
     return this.prisma.course.update({
       where: { id },
