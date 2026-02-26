@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   HttpCode,
   HttpStatus,
   Param,
@@ -29,6 +30,7 @@ interface AuthRequest extends Request {
 /**
  * Routes:
  *  POST   /modules/:moduleId/lessons  — create
+ *  GET    /lessons/:id                — get by id
  *  PATCH  /lessons/:id                — update
  *  DELETE /lessons/:id                — delete
  */
@@ -55,6 +57,19 @@ export class LessonsController {
     @Req() req: AuthRequest,
   ) {
     const data = await this.lessonsService.create(moduleId, dto, req.user);
+    return { success: true, data };
+  }
+
+  /**
+   * GET /api/v1/lessons/:id
+   * Get a single lesson by id for admin editing flows.
+   */
+  @Get('lessons/:id')
+  @UseGuards(JwtGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Get a lesson by id (admin/super-admin)' })
+  async findOne(@Param('id') id: string, @Req() req: AuthRequest) {
+    const data = await this.lessonsService.findById(id, req.user);
     return { success: true, data };
   }
 

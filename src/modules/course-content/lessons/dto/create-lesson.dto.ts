@@ -3,12 +3,15 @@ import { LessonType } from '@prisma/client';
 import {
   IsEnum,
   IsNotEmpty,
+  IsArray,
   IsOptional,
   IsString,
   IsUrl,
   MaxLength,
   ValidateIf,
 } from 'class-validator';
+import { LessonContentBlock } from './lesson-content-block.type';
+import { IsLessonContentBlocks } from './lesson-content.validator';
 
 export class CreateLessonDto {
   @ApiProperty({
@@ -64,4 +67,22 @@ export class CreateLessonDto {
   })
   @IsOptional()
   assignmentDescription?: string;
+
+  @ApiPropertyOptional({
+    description: 'Structured lesson content blocks',
+    type: 'array',
+    example: [
+      { type: 'text', value: 'Introduction to JavaScript event loop' },
+      { type: 'video', url: 'https://cdn.example.com/lessons/event-loop.mp4' },
+      {
+        type: 'resource',
+        url: 'https://developer.mozilla.org/',
+        label: 'MDN Reference',
+      },
+    ],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsLessonContentBlocks()
+  content?: LessonContentBlock[];
 }

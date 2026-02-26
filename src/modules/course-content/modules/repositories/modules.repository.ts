@@ -13,6 +13,7 @@ export type LessonSummary = {
   type: LessonType;
   videoUrl: string | null;
   moduleId: string;
+  content: Prisma.JsonValue | null;
 };
 
 export type ModuleWithLessons = {
@@ -76,6 +77,7 @@ export class ModulesRepository {
         type: lesson.type,
         videoUrl: lesson.videoUrl,
         moduleId: lesson.moduleId,
+        content: lesson.content,
       })),
     }));
   }

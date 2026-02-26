@@ -20,6 +20,11 @@ export type LessonResult = {
   type: LessonType;
   videoUrl: string | null;
   moduleId: string;
+  content: Prisma.JsonValue | null;
+};
+
+export type LessonDetailResult = LessonResult & {
+  courseId: string;
 };
 
 @Injectable()
@@ -53,8 +58,40 @@ export class LessonsRepository {
         type: true,
         videoUrl: true,
         moduleId: true,
+        content: true,
       },
     });
+  }
+
+  async findByIdWithCourse(id: string): Promise<LessonDetailResult | null> {
+    const lesson = await this.prisma.lesson.findFirst({
+      where: { id },
+      select: {
+        id: true,
+        title: true,
+        order: true,
+        type: true,
+        videoUrl: true,
+        moduleId: true,
+        content: true,
+        module: { select: { courseId: true } },
+      },
+    });
+
+    if (!lesson) {
+      return null;
+    }
+
+    return {
+      id: lesson.id,
+      title: lesson.title,
+      order: lesson.order,
+      type: lesson.type,
+      videoUrl: lesson.videoUrl,
+      moduleId: lesson.moduleId,
+      content: lesson.content,
+      courseId: lesson.module.courseId,
+    };
   }
 
   async update(
@@ -71,6 +108,7 @@ export class LessonsRepository {
         type: true,
         videoUrl: true,
         moduleId: true,
+        content: true,
       },
     });
   }

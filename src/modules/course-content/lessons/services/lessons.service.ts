@@ -4,9 +4,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { LessonType, UserRole } from '@prisma/client';
+import { LessonType, Prisma, UserRole } from '@prisma/client';
 import { PrismaService } from '../../../../shared/prisma/prisma.service';
 import {
+  LessonDetailResult,
   LessonsRepository,
   LessonResult,
 } from '../repositories/lessons.repository';
@@ -122,6 +123,9 @@ export class LessonsService {
           type: dto.type,
           order: nextOrder,
           ...(dto.type === LessonType.VIDEO ? { videoUrl: dto.videoUrl } : {}),
+          ...(dto.content !== undefined
+            ? { content: dto.content as Prisma.InputJsonValue }
+            : {}),
         },
         select: {
           id: true,
@@ -130,6 +134,7 @@ export class LessonsService {
           type: true,
           videoUrl: true,
           moduleId: true,
+          content: true,
         },
       });
 
@@ -155,7 +160,7 @@ export class LessonsService {
   }
 
   /**
-   * Update lesson metadata (title, type, videoUrl).
+   * Update lesson metadata (title, type, videoUrl, content).
    * Does NOT mutate Quiz / Assignment side-records.
    */
   async update(
@@ -169,7 +174,31 @@ export class LessonsService {
       ...(dto.title !== undefined ? { title: dto.title } : {}),
       ...(dto.type !== undefined ? { type: dto.type } : {}),
       ...(dto.videoUrl !== undefined ? { videoUrl: dto.videoUrl } : {}),
+      ...(dto.content !== undefined
+        ? { content: dto.content as Prisma.InputJsonValue }
+        : {}),
     });
+  }
+
+  /**
+   * Find a single lesson with ownership checks.
+   */
+  async findById(
+    lessonId: string,
+    user: JwtPayload,
+  ): Promise<LessonDetailResult> {
+    const lesson = await this.validateLessonOwnership(lessonId, user);
+
+    return {
+      id: lesson.id,
+      title: lesson.title,
+      order: lesson.order,
+      type: lesson.type,
+      videoUrl: lesson.videoUrl,
+      moduleId: lesson.moduleId,
+      content: lesson.content,
+      courseId: lesson.module.courseId,
+    };
   }
 
   /**
