@@ -81,6 +81,20 @@ export class CoursesAdminController {
     return { success: true, ...result };
   }
 
+  @Get(':id')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Get single course by id (admin)' })
+  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 404, description: 'Course not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  async findOne(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Request() req: { user: { sub: string; role: UserRole } },
+  ) {
+    const data = await this.service.findOne(id, req.user.sub, req.user.role);
+    return { success: true, data };
+  }
+
   @Post()
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @AdminAudit({

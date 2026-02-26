@@ -101,6 +101,19 @@ export class CoursesService {
   }
 
   /**
+   * Admin single-course lookup by ID.
+   * ADMIN users can only access their own courses; SUPER_ADMIN can access all.
+   */
+  async findOne(
+    id: string,
+    userId: string,
+    userRole: UserRole,
+  ): Promise<AdminCourseResponse> {
+    const course = await this.ensureExistsAndAuthorized(id, userId, userRole);
+    return this.mapAdminResponse(course);
+  }
+
+  /**
    * Admin listing — returns all non-deleted courses (DRAFT + PUBLISHED).
    * ADMIN users only see their own courses; SUPER_ADMIN sees all.
    */
