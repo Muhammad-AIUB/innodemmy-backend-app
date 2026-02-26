@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -308,6 +309,31 @@ export class CoursesService {
 
     if (existing.status === CourseStatus.PUBLISHED) {
       return this.mapAdminResponse(existing);
+    }
+
+    // Validate required fields before publishing
+    const requiredFields: { field: string; label: string }[] = [
+      { field: 'bannerImage', label: 'Banner Image' },
+      { field: 'startDate', label: 'Start Date' },
+      { field: 'classDays', label: 'Class Days' },
+      { field: 'classTime', label: 'Class Time' },
+      { field: 'totalModules', label: 'Total Modules' },
+      { field: 'totalProjects', label: 'Total Projects' },
+      { field: 'totalLive', label: 'Total Live Sessions' },
+    ];
+
+    const missing: string[] = [];
+    for (const { field, label } of requiredFields) {
+      const value = (existing as Record<string, unknown>)[field];
+      if (value === null || value === undefined || value === '') {
+        missing.push(label);
+      }
+    }
+
+    if (missing.length > 0) {
+      throw new BadRequestException(
+        `Cannot publish course. Missing required fields: ${missing.join(', ')}`,
+      );
     }
 
     const published = await this.repo.publish(id);
