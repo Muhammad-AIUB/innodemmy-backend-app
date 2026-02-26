@@ -66,12 +66,19 @@ async function bootstrap() {
     ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
     : ['http://localhost:3000'];
 
+  console.log('🔐 CORS Configuration:');
+  console.log('   Allowed Origins:', allowedOrigins);
+  console.log('   ALLOWED_ORIGINS env:', process.env.ALLOWED_ORIGINS);
+
   app.enableCors({
     origin: (origin, callback) => {
+      console.log('🌐 CORS Request from origin:', origin);
       // Allow server-to-server (no origin) or whitelisted origins
       if (!origin || allowedOrigins.includes(origin)) {
+        console.log('✅ CORS: Origin allowed');
         callback(null, true);
       } else {
+        console.log('❌ CORS: Origin blocked!', { origin, allowedOrigins });
         callback(new Error('Not allowed by CORS'), false);
       }
     },
