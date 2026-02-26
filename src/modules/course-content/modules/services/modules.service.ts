@@ -95,7 +95,7 @@ export class ModulesService {
     return {
       id: mod.id,
       title: mod.title,
-      order: mod.order as number,
+      order: mod.order,
       courseId: mod.courseId,
     };
   }
@@ -112,7 +112,7 @@ export class ModulesService {
     return {
       id: updated.id,
       title: updated.title,
-      order: updated.order as number,
+      order: updated.order,
       courseId: updated.courseId,
     };
   }

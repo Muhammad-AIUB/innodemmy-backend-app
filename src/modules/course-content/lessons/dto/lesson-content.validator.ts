@@ -34,8 +34,12 @@ const isValidUrlString = (value: unknown): value is string => {
   }
 };
 
-const hasExactKeys = (value: Record<string, unknown>, keys: string[]): boolean =>
-  Object.keys(value).length === keys.length && keys.every((key) => hasOwn(value, key));
+const hasExactKeys = (
+  value: Record<string, unknown>,
+  keys: string[],
+): boolean =>
+  Object.keys(value).length === keys.length &&
+  keys.every((key) => hasOwn(value, key));
 
 const isTextBlock = (value: Record<string, unknown>): boolean =>
   hasExactKeys(value, ['type', 'value']) && isNonEmptyString(value.value);

@@ -14,6 +14,7 @@ import { CourseContentModule } from './modules/course-content/course-content.mod
 import { AssessmentModule } from './modules/assessment/assessment.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { ProgressModule } from './modules/progress/progress.module';
 import { BackupModule } from './modules/backup/backup.module';
 
 @Module({
@@ -31,6 +32,7 @@ import { BackupModule } from './modules/backup/backup.module';
     AssessmentModule,
     NotificationModule,
     PaymentModule,
+    ProgressModule,
     BackupModule,
   ],
   controllers: [AppController],
