@@ -11,6 +11,7 @@ import {
   CoursesRepository,
 } from '../repositories/courses.repository';
 import { CourseAnalyticsRepository } from '../repositories/course-analytics.repository';
+import { CourseEnrollmentsRepository } from '../repositories/course-enrollments.repository';
 import { CreateCourseDto } from '../dto/create-course.dto';
 import { UpdateCourseDto } from '../dto/update-course.dto';
 import { ListCoursesQueryDto } from '../queries/course.query';
@@ -74,6 +75,16 @@ export type CourseAnalyticsResponse = {
   completionRate: number;
 };
 
+export type CourseEnrollmentResponse = {
+  userId: string;
+  name: string;
+  email: string;
+  enrolledAt: string;
+  completedLessons: number;
+  totalLessons: number;
+  progressPercentage: number;
+};
+
 @Injectable()
 export class CoursesService {
   private readonly analyticsCache = new Map<
@@ -84,6 +95,7 @@ export class CoursesService {
   constructor(
     private readonly repo: CoursesRepository,
     private readonly analyticsRepo: CourseAnalyticsRepository,
+    private readonly enrollmentsRepo: CourseEnrollmentsRepository,
     private readonly cache: CacheService,
   ) {}
 
@@ -429,6 +441,43 @@ export class CoursesService {
     });
 
     return analytics;
+  }
+
+  async getCourseEnrollments(
+    courseId: string,
+    userId: string,
+    userRole: UserRole,
+  ): Promise<CourseEnrollmentResponse[]> {
+    await this.ensureExistsAndAuthorized(courseId, userId, userRole);
+
+    const [activeEnrollments, totalLessons, completedCounts] =
+      await Promise.all([
+        this.enrollmentsRepo.findActiveCourseEnrollments(courseId),
+        this.enrollmentsRepo.countCourseLessons(courseId),
+        this.enrollmentsRepo.getCompletedLessonCountsByUser(courseId),
+      ]);
+
+    const completedByUser = new Map<string, number>(
+      completedCounts.map((row) => [row.userId, row.completedLessons]),
+    );
+
+    return activeEnrollments.map((enrollment) => {
+      const completedLessons = completedByUser.get(enrollment.userId) ?? 0;
+      const progressPercentage =
+        totalLessons > 0
+          ? Math.round((completedLessons / totalLessons) * 100)
+          : 0;
+
+      return {
+        userId: enrollment.userId,
+        name: enrollment.name ?? '',
+        email: enrollment.email,
+        enrolledAt: enrollment.enrolledAt.toISOString(),
+        completedLessons,
+        totalLessons,
+        progressPercentage,
+      };
+    });
   }
 
   private async ensureExistsAndAuthorized(
