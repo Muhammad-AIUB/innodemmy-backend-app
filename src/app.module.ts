@@ -16,6 +16,7 @@ import { NotificationModule } from './modules/notification/notification.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { ProgressModule } from './modules/progress/progress.module';
 import { BackupModule } from './modules/backup/backup.module';
+import { EnrollmentRequestModule } from './modules/enrollment-requests/enrollment-request.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { BackupModule } from './modules/backup/backup.module';
     PaymentModule,
     ProgressModule,
     BackupModule,
+    EnrollmentRequestModule,
   ],
   controllers: [AppController],
   providers: [AppService],

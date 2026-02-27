@@ -60,6 +60,12 @@ enum PaymentStatus {
   REJECTED
 }
 
+enum EnrollmentRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 //////////////////////////////////////////////////
 // USER + AUTH
 //////////////////////////////////////////////////
@@ -91,9 +97,10 @@ model User {
   lessonProgress   LessonProgress[]
   otpCodes         OtpCode[]
   notifications    Notification[]
-  payments         Payment[]
-  reviewedPayments Payment[]        @relation("PaymentReviewer")
-  adminActions     AdminActionLog[]
+  payments             Payment[]
+  reviewedPayments     Payment[]            @relation("PaymentReviewer")
+  adminActions         AdminActionLog[]
+  enrollmentRequests   EnrollmentRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -293,8 +300,9 @@ model Course {
   modules     CourseModule[]
   instructors CourseInstructor[]
   enrollments Enrollment[]
-  payments    Payment[]
-  faqs        FAQ[]
+  payments           Payment[]
+  faqs               FAQ[]
+  enrollmentRequests EnrollmentRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -519,6 +527,30 @@ model Payment {
   @@index([createdAt])
   @@index([reviewedById])
   @@index([status, createdAt])
+}
+
+//////////////////////////////////////////////////
+// ENROLLMENT REQUEST
+//////////////////////////////////////////////////
+
+model EnrollmentRequest {
+  id            String                  @id @default(uuid())
+  courseId       String
+  userId        String
+  paymentMethod String
+  transactionId String
+  screenshotUrl String
+  status        EnrollmentRequestStatus @default(PENDING)
+  adminNote     String?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, courseId])
+  @@index([status])
 }
 
 //////////////////////////////////////////////////
