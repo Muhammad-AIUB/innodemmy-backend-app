@@ -22,6 +22,8 @@ import { CacheService } from '../../../shared/cache/cache.service';
 const CACHE_LIST_TTL = 5 * 60_000;
 const CACHE_ITEM_TTL = 10 * 60_000;
 const CACHE_PREFIX = 'courses:';
+const ANALYTICS_CACHE_PREFIX = 'course-analytics:';
+const ANALYTICS_CACHE_TTL = 60_000;
 
 type PublicCourseResponse = {
   title: string;
@@ -74,6 +76,11 @@ export type CourseAnalyticsResponse = {
 
 @Injectable()
 export class CoursesService {
+  private readonly analyticsCache = new Map<
+    string,
+    { data: CourseAnalyticsResponse; expiresAt: number }
+  >();
+
   constructor(
     private readonly repo: CoursesRepository,
     private readonly analyticsRepo: CourseAnalyticsRepository,
@@ -380,6 +387,17 @@ export class CoursesService {
   ): Promise<CourseAnalyticsResponse> {
     await this.ensureExistsAndAuthorized(courseId, userId, userRole);
 
+    const cacheKey = this.buildAnalyticsCacheKey(courseId);
+    const cached = this.analyticsCache.get(cacheKey);
+
+    if (cached) {
+      if (Date.now() < cached.expiresAt) {
+        return cached.data;
+      }
+
+      this.analyticsCache.delete(cacheKey);
+    }
+
     const [enrolledStudents, totalLessons, startedStudents] = await Promise.all(
       [
         this.analyticsRepo.getEnrollmentCount(courseId),
@@ -398,12 +416,19 @@ export class CoursesService {
         ? 0
         : Math.round((completedStudents / enrolledStudents) * 100);
 
-    return {
+    const analytics: CourseAnalyticsResponse = {
       enrolledStudents,
       startedStudents,
       completedStudents,
       completionRate,
     };
+
+    this.analyticsCache.set(cacheKey, {
+      data: analytics,
+      expiresAt: Date.now() + ANALYTICS_CACHE_TTL,
+    });
+
+    return analytics;
   }
 
   private async ensureExistsAndAuthorized(
@@ -456,6 +481,10 @@ export class CoursesService {
     }
 
     return candidate;
+  }
+
+  private buildAnalyticsCacheKey(courseId: string): string {
+    return `${ANALYTICS_CACHE_PREFIX}${courseId}`;
   }
 
   /**
