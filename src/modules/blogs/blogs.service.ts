@@ -80,6 +80,16 @@ type PaginatedBlogsResponse = {
   };
 };
 
+type PaginatedAdminBlogsResponse = {
+  data: AdminBlogResponse[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
 @Injectable()
 export class BlogsService {
   constructor(
@@ -252,6 +262,39 @@ export class BlogsService {
       },
       CACHE_ITEM_TTL,
     );
+  }
+
+  async findAllAdmin(
+    query: ListBlogsQueryDto,
+  ): Promise<PaginatedAdminBlogsResponse> {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const categoryId = query.categoryId ?? '';
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await Promise.all([
+      this.repo.findAdminPaginated({
+        skip,
+        take: limit,
+        categoryId: categoryId || undefined,
+      }),
+      this.repo.countAdmin(categoryId || undefined),
+    ]);
+
+    return {
+      data: items.map((item) => this.mapAdminResponse(item)),
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: total === 0 ? 0 : Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async findByIdAdmin(id: string): Promise<AdminBlogResponse> {
+    const blog = await this.ensureExists(id);
+    return this.mapAdminResponse(blog);
   }
   private async ensureExists(id: string): Promise<BlogEntity> {
     const blog = await this.repo.findById(id);

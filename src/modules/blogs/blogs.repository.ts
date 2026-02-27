@@ -90,10 +90,38 @@ export class BlogsRepository {
     });
   }
 
+  findAdminPaginated(params: {
+    skip: number;
+    take: number;
+    categoryId?: string;
+  }): Promise<BlogEntity[]> {
+    const { skip, take, categoryId } = params;
+
+    return this.prisma.blog.findMany({
+      where: {
+        isDeleted: false,
+        ...(categoryId ? { categoryId } : {}),
+      },
+      skip,
+      take,
+      orderBy: { createdAt: 'desc' },
+      include: blogDetailInclude,
+    });
+  }
+
   countPublished(categoryId?: string): Promise<number> {
     return this.prisma.blog.count({
       where: {
         status: BlogStatus.PUBLISHED,
+        isDeleted: false,
+        ...(categoryId ? { categoryId } : {}),
+      },
+    });
+  }
+
+  countAdmin(categoryId?: string): Promise<number> {
+    return this.prisma.blog.count({
+      where: {
         isDeleted: false,
         ...(categoryId ? { categoryId } : {}),
       },
