@@ -79,4 +79,14 @@ export class EnrollmentRepository {
       },
     }) as Promise<Enrollment[]>;
   }
+
+  async findActiveByUser(
+    userId: string,
+  ): Promise<{ courseId: string; createdAt: Date }[]> {
+    return this.prisma.enrollment.findMany({
+      where: { userId, status: EnrollmentStatus.ACTIVE },
+      select: { courseId: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }

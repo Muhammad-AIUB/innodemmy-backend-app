@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Param,
@@ -31,6 +32,18 @@ interface AuthenticatedRequest extends Request {
 @Controller('enrollments')
 export class EnrollmentController {
   constructor(private readonly enrollmentService: EnrollmentService) {}
+
+  /**
+   * STUDENT: Get own active enrollments.
+   * GET /api/v1/enrollments/my-courses
+   */
+  @Get('my-courses')
+  @UseGuards(JwtGuard)
+  @ApiOperation({ summary: 'Get my enrolled courses (student)' })
+  async myCourses(@Req() req: AuthenticatedRequest) {
+    const data = await this.enrollmentService.getMyEnrollments(req.user.sub);
+    return { success: true, data };
+  }
 
   /**
    * STUDENT: Self-enroll in a published course.

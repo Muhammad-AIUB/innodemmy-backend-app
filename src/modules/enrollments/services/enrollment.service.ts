@@ -19,6 +19,11 @@ export type EnrollmentResponse = {
   createdAt: Date;
 };
 
+export type MyEnrollmentResponse = {
+  courseId: string;
+  enrolledAt: Date;
+};
+
 function mapEnrollment(enrollment: Enrollment): EnrollmentResponse {
   return {
     id: enrollment.id,
@@ -175,6 +180,17 @@ export class EnrollmentService {
         `[fireEnrollmentActivatedNotification] ${(err as Error).message}`,
       );
     }
+  }
+
+  /**
+   * STUDENT: get own active enrollments.
+   */
+  async getMyEnrollments(userId: string): Promise<MyEnrollmentResponse[]> {
+    const enrollments = await this.repo.findActiveByUser(userId);
+    return enrollments.map((e) => ({
+      courseId: e.courseId,
+      enrolledAt: e.createdAt,
+    }));
   }
 
   /**
