@@ -17,6 +17,7 @@ import { PaymentModule } from './modules/payment/payment.module';
 import { ProgressModule } from './modules/progress/progress.module';
 import { BackupModule } from './modules/backup/backup.module';
 import { EnrollmentRequestModule } from './modules/enrollment-requests/enrollment-request.module';
+import { WebinarRegistrationModule } from './modules/webinar-registrations/webinar-registration.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { EnrollmentRequestModule } from './modules/enrollment-requests/enrollmen
     ProgressModule,
     BackupModule,
     EnrollmentRequestModule,
+    WebinarRegistrationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

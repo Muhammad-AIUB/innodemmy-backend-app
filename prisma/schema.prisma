@@ -168,6 +168,8 @@ model Webinar {
   status           WebinarStatus @default(DRAFT)
   isDeleted        Boolean       @default(false)
 
+  registrations WebinarRegistration[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -178,6 +180,25 @@ model Webinar {
   @@index([createdAt])
   @@index([status, date])
   @@index([status, isDeleted])
+}
+
+//////////////////////////////////////////////////
+// WEBINAR REGISTRATION
+//////////////////////////////////////////////////
+
+model WebinarRegistration {
+  id        String   @id @default(uuid())
+  webinarId String
+  name      String
+  email     String
+  phone     String
+  createdAt DateTime @default(now())
+
+  webinar Webinar @relation(fields: [webinarId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([webinarId, email])
+  @@index([webinarId])
+  @@index([email])
 }
 
 //////////////////////////////////////////////////
