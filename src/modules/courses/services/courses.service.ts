@@ -10,6 +10,7 @@ import {
   CourseListItem,
   CoursesRepository,
 } from '../repositories/courses.repository';
+import { CourseAnalyticsRepository } from '../repositories/course-analytics.repository';
 import { CreateCourseDto } from '../dto/create-course.dto';
 import { UpdateCourseDto } from '../dto/update-course.dto';
 import { ListCoursesQueryDto } from '../queries/course.query';
@@ -64,10 +65,18 @@ type PaginatedAdminCoursesResponse = {
   };
 };
 
+export type CourseAnalyticsResponse = {
+  enrolledStudents: number;
+  startedStudents: number;
+  completedStudents: number;
+  completionRate: number;
+};
+
 @Injectable()
 export class CoursesService {
   constructor(
     private readonly repo: CoursesRepository,
+    private readonly analyticsRepo: CourseAnalyticsRepository,
     private readonly cache: CacheService,
   ) {}
 
@@ -362,6 +371,39 @@ export class CoursesService {
     await this.repo.softDelete(id);
 
     this.cache.delByPrefix(CACHE_PREFIX);
+  }
+
+  async getCourseAnalytics(
+    courseId: string,
+    userId: string,
+    userRole: UserRole,
+  ): Promise<CourseAnalyticsResponse> {
+    await this.ensureExistsAndAuthorized(courseId, userId, userRole);
+
+    const [enrolledStudents, totalLessons, startedStudents] = await Promise.all(
+      [
+        this.analyticsRepo.getEnrollmentCount(courseId),
+        this.analyticsRepo.getTotalLessons(courseId),
+        this.analyticsRepo.getStudentsStarted(courseId),
+      ],
+    );
+
+    const completedStudents = await this.analyticsRepo.getStudentsCompleted(
+      courseId,
+      totalLessons,
+    );
+
+    const completionRate =
+      enrolledStudents === 0
+        ? 0
+        : Math.round((completedStudents / enrolledStudents) * 100);
+
+    return {
+      enrolledStudents,
+      startedStudents,
+      completedStudents,
+      completionRate,
+    };
   }
 
   private async ensureExistsAndAuthorized(
