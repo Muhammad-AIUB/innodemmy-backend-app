@@ -88,4 +88,25 @@ export class CourseAnalyticsController {
 
     return { success: true, data };
   }
+
+  @Get(':courseId/lesson-engagement')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiOperation({
+    summary: 'Get lesson engagement analytics for an admin course',
+  })
+  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 404, description: 'Course not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  async getCourseLessonEngagement(
+    @Param('courseId', new ParseUUIDPipe()) courseId: string,
+    @Request() req: { user: { sub: string; role: UserRole } },
+  ) {
+    const data = await this.service.getCourseLessonEngagement(
+      courseId,
+      req.user.sub,
+      req.user.role,
+    );
+
+    return { success: true, data };
+  }
 }

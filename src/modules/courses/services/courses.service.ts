@@ -12,6 +12,7 @@ import {
 } from '../repositories/courses.repository';
 import { CourseAnalyticsRepository } from '../repositories/course-analytics.repository';
 import { CourseEnrollmentsRepository } from '../repositories/course-enrollments.repository';
+import { CourseLessonEngagementRepository } from '../repositories/course-lesson-engagement.repository';
 import { CourseStudentProgressRepository } from '../repositories/course-student-progress.repository';
 import { CreateCourseDto } from '../dto/create-course.dto';
 import { UpdateCourseDto } from '../dto/update-course.dto';
@@ -108,6 +109,18 @@ export type StudentCourseProgressResponse = {
   progressPercentage: number;
 };
 
+export type CourseLessonEngagementLessonResponse = {
+  lessonId: string;
+  title: string;
+  completionRate: number;
+};
+
+export type CourseLessonEngagementModuleResponse = {
+  moduleId: string;
+  moduleTitle: string;
+  lessons: CourseLessonEngagementLessonResponse[];
+};
+
 @Injectable()
 export class CoursesService {
   private readonly analyticsCache = new Map<
@@ -119,6 +132,7 @@ export class CoursesService {
     private readonly repo: CoursesRepository,
     private readonly analyticsRepo: CourseAnalyticsRepository,
     private readonly enrollmentsRepo: CourseEnrollmentsRepository,
+    private readonly lessonEngagementRepo: CourseLessonEngagementRepository,
     private readonly studentProgressRepo: CourseStudentProgressRepository,
     private readonly cache: CacheService,
   ) {}
@@ -567,6 +581,43 @@ export class CoursesService {
       totalLessons,
       progressPercentage,
     };
+  }
+
+  async getCourseLessonEngagement(
+    courseId: string,
+    userId: string,
+    userRole: UserRole,
+  ): Promise<CourseLessonEngagementModuleResponse[]> {
+    await this.ensureExistsAndAuthorized(courseId, userId, userRole);
+
+    const [totalEnrolledStudents, completedByLesson, moduleTree] =
+      await Promise.all([
+        this.lessonEngagementRepo.countActiveEnrollments(courseId),
+        this.lessonEngagementRepo.findCompletedCountsByLesson(courseId),
+        this.lessonEngagementRepo.findModuleLessonTree(courseId),
+      ]);
+
+    const completedCountByLesson = new Map<string, number>(
+      completedByLesson.map((row) => [row.lessonId, row.completedCount]),
+    );
+
+    return moduleTree.map((module) => ({
+      moduleId: module.moduleId,
+      moduleTitle: module.moduleTitle,
+      lessons: module.lessons.map((lesson) => {
+        const completedCount = completedCountByLesson.get(lesson.lessonId) ?? 0;
+        const completionRate =
+          totalEnrolledStudents > 0
+            ? Math.round((completedCount / totalEnrolledStudents) * 100)
+            : 0;
+
+        return {
+          lessonId: lesson.lessonId,
+          title: lesson.title,
+          completionRate,
+        };
+      }),
+    }));
   }
 
   private async ensureExistsAndAuthorized(
