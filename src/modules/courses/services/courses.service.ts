@@ -12,6 +12,7 @@ import {
 } from '../repositories/courses.repository';
 import { CourseAnalyticsRepository } from '../repositories/course-analytics.repository';
 import { CourseEnrollmentsRepository } from '../repositories/course-enrollments.repository';
+import { CourseStudentProgressRepository } from '../repositories/course-student-progress.repository';
 import { CreateCourseDto } from '../dto/create-course.dto';
 import { UpdateCourseDto } from '../dto/update-course.dto';
 import { ListCoursesQueryDto } from '../queries/course.query';
@@ -85,6 +86,28 @@ export type CourseEnrollmentResponse = {
   progressPercentage: number;
 };
 
+export type StudentCourseProgressLessonResponse = {
+  lessonId: string;
+  title: string;
+  completed: boolean;
+};
+
+export type StudentCourseProgressModuleResponse = {
+  moduleId: string;
+  title: string;
+  lessons: StudentCourseProgressLessonResponse[];
+};
+
+export type StudentCourseProgressResponse = {
+  userId: string;
+  name: string;
+  email: string;
+  modules: StudentCourseProgressModuleResponse[];
+  completedLessons: number;
+  totalLessons: number;
+  progressPercentage: number;
+};
+
 @Injectable()
 export class CoursesService {
   private readonly analyticsCache = new Map<
@@ -96,6 +119,7 @@ export class CoursesService {
     private readonly repo: CoursesRepository,
     private readonly analyticsRepo: CourseAnalyticsRepository,
     private readonly enrollmentsRepo: CourseEnrollmentsRepository,
+    private readonly studentProgressRepo: CourseStudentProgressRepository,
     private readonly cache: CacheService,
   ) {}
 
@@ -478,6 +502,71 @@ export class CoursesService {
         progressPercentage,
       };
     });
+  }
+
+  async getStudentCourseProgress(
+    courseId: string,
+    studentId: string,
+    adminUserId: string,
+    adminUserRole: UserRole,
+  ): Promise<StudentCourseProgressResponse> {
+    await this.ensureExistsAndAuthorized(courseId, adminUserId, adminUserRole);
+
+    const enrolledStudent =
+      await this.studentProgressRepo.findActiveEnrollmentStudent(
+        courseId,
+        studentId,
+      );
+
+    if (!enrolledStudent) {
+      throw new NotFoundException(
+        'Active enrollment not found for this student in the course.',
+      );
+    }
+
+    const [modules, completedLessonIds] = await Promise.all([
+      this.studentProgressRepo.findCourseModulesWithLessons(courseId),
+      this.studentProgressRepo.findCompletedLessonIdsForUserInCourse(
+        courseId,
+        studentId,
+      ),
+    ]);
+
+    const completedLessonIdSet = new Set(completedLessonIds);
+    let totalLessons = 0;
+
+    const moduleResponses = modules.map((module) => {
+      const lessons = module.lessons.map((lesson) => {
+        totalLessons += 1;
+        return {
+          lessonId: lesson.lessonId,
+          title: lesson.title,
+          completed: completedLessonIdSet.has(lesson.lessonId),
+        };
+      });
+
+      return {
+        moduleId: module.moduleId,
+        title: module.title,
+        lessons,
+      };
+    });
+
+    const completedLessons = completedLessonIds.length;
+    const progressPercentage =
+      totalLessons > 0
+        ? Math.round((completedLessons / totalLessons) * 100)
+        : 0;
+
+    return {
+      userId: enrolledStudent.userId,
+      name: enrolledStudent.name ?? '',
+      email: enrolledStudent.email,
+      modules: moduleResponses,
+      completedLessons,
+      totalLessons,
+      progressPercentage,
+    };
   }
 
   private async ensureExistsAndAuthorized(

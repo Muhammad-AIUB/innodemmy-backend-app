@@ -8,6 +8,7 @@ import { CoursesService } from './services/courses.service';
 import { CoursesRepository } from './repositories/courses.repository';
 import { CourseAnalyticsRepository } from './repositories/course-analytics.repository';
 import { CourseEnrollmentsRepository } from './repositories/course-enrollments.repository';
+import { CourseStudentProgressRepository } from './repositories/course-student-progress.repository';
 
 @Module({
   controllers: [
@@ -20,6 +21,7 @@ import { CourseEnrollmentsRepository } from './repositories/course-enrollments.r
     CoursesRepository,
     CourseAnalyticsRepository,
     CourseEnrollmentsRepository,
+    CourseStudentProgressRepository,
   ],
   exports: [CoursesService],
 })

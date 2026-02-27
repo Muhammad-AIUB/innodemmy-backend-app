@@ -67,4 +67,25 @@ export class CourseAnalyticsController {
 
     return { success: true, data };
   }
+
+  @Get(':courseId/students/:userId/progress')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @ApiOperation({ summary: 'Get student lesson progress for an admin course' })
+  @ApiResponse({ status: 200 })
+  @ApiResponse({ status: 404, description: 'Course or enrollment not found' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  async getStudentCourseProgress(
+    @Param('courseId', new ParseUUIDPipe()) courseId: string,
+    @Param('userId', new ParseUUIDPipe()) userId: string,
+    @Request() req: { user: { sub: string; role: UserRole } },
+  ) {
+    const data = await this.service.getStudentCourseProgress(
+      courseId,
+      userId,
+      req.user.sub,
+      req.user.role,
+    );
+
+    return { success: true, data };
+  }
 }
