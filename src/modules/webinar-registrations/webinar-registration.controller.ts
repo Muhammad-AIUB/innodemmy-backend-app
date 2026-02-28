@@ -52,9 +52,7 @@ export class WebinarRegistrationAdminController {
    */
   @Get(':webinarId/registrations')
   @ApiOperation({ summary: 'List webinar registrations (admin)' })
-  async findAll(
-    @Param('webinarId', new ParseUUIDPipe()) webinarId: string,
-  ) {
+  async findAll(@Param('webinarId', new ParseUUIDPipe()) webinarId: string) {
     const data = await this.service.findAllByWebinar(webinarId);
     return { success: true, data };
   }
