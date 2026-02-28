@@ -57,7 +57,7 @@ export class MailService {
     try {
       const from =
         this.config.get<string>('MAIL_FROM') ??
-        `"Innodemmy LMS" <no-reply@innodemmy.com>`;
+        `"Innodemy LMS" <no-reply@innodemy.com>`;
 
       const info = await this.transporter.sendMail({
         from,
@@ -87,7 +87,7 @@ export class MailService {
   async sendTestEmail(to: string): Promise<void> {
     const from =
       this.config.get<string>('MAIL_FROM') ??
-      `"Innodemmy LMS" <no-reply@innodemmy.com>`;
+      `"Innodemy LMS" <no-reply@innodemy.com>`;
 
     try {
       const info = await this.transporter.sendMail({
@@ -96,7 +96,7 @@ export class MailService {
         subject: 'SMTP Test Mail',
         html: this.tpl(
           'SMTP Test Mail',
-          '<p>This is a test email sent from the Innodemmy backend to verify SMTP configuration.</p>',
+          '<p>This is a test email sent from the Innodemy backend to verify SMTP configuration.</p>',
         ),
       });
       this.logger.log(`Test email sent -> ${to}`);
@@ -116,7 +116,7 @@ export class MailService {
   async sendOtpEmail(email: string, otp: string): Promise<void> {
     const from =
       this.config.get<string>('MAIL_FROM') ??
-      `"Innodemmy LMS" <no-reply@innodemmy.com>`;
+      `"Innodemy LMS" <no-reply@innodemy.com>`;
 
     try {
       const info = await this.transporter.sendMail({
@@ -252,7 +252,7 @@ export class MailService {
         <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
           <tr>
             <td style="background:#1d4ed8;padding:24px 32px;">
-              <h1 style="margin:0;color:#ffffff;font-size:20px;">Innodemmy LMS</h1>
+              <h1 style="margin:0;color:#ffffff;font-size:20px;">Innodemy LMS</h1>
             </td>
           </tr>
           <tr>
@@ -262,7 +262,7 @@ export class MailService {
           </tr>
           <tr>
             <td style="background:#f9fafb;padding:16px 32px;color:#9ca3af;font-size:12px;text-align:center;border-top:1px solid #e5e7eb;">
-              &copy; ${new Date().getFullYear()} Innodemmy. All rights reserved.
+              &copy; ${new Date().getFullYear()} Innodemy. All rights reserved.
             </td>
           </tr>
         </table>

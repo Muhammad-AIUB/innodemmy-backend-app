@@ -96,7 +96,7 @@ async function bootstrap() {
   // Swagger only in non-production
   if (process.env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder()
-      .setTitle('Innodemmy API')
+      .setTitle('Innodemy API')
       .setDescription('Backend service')
       .setVersion('1.0')
       .addBearerAuth()
