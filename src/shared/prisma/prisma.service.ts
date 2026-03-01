@@ -59,7 +59,22 @@ export class PrismaService
 
   async onModuleInit() {
     this.registerSoftDeleteMiddleware();
-    await this.$connect();
+
+    const maxAttempts = 5;
+    const delayMs = 2000;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await this.$connect();
+        break;
+      } catch (err) {
+        if (attempt === maxAttempts) throw err;
+        this.logger.warn(
+          `Database connection attempt ${attempt}/${maxAttempts} failed — retrying in ${delayMs}ms…`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+
     this.logger.log('Database connected (pooled)');
 
     if (process.env.DATABASE_URL_UNPOOLED) {

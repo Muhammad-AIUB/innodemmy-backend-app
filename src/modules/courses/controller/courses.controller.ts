@@ -84,7 +84,7 @@ export class CoursesPublicController {
 }
 
 @ApiTags('courses-admin')
-@Controller('api/v1/courses')
+@Controller('admin/courses')
 @UseGuards(JwtGuard, RolesGuard)
 @UseInterceptors(AdminAuditInterceptor)
 @ApiBearerAuth()
