@@ -30,6 +30,7 @@ import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
 import { GoogleLoginDto } from '../dto/google-login.dto';
 import { CreateAdminDto } from '../dto/create-admin.dto';
+import { CheckEmailDto } from '../dto/check-email.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -37,6 +38,25 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   // ─── OTP FLOW ─────────────────────────────────────────────────────────────
+
+  @Post('check-email')
+  @RateLimit({ max: 10, timeWindow: '1 minute' })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Check if email already exists in the system',
+    description: 'Returns exists: true if email is registered, false otherwise',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Email check completed.',
+    schema: {
+      example: { success: true, data: { exists: false } },
+    },
+  })
+  async checkEmail(@Body() dto: CheckEmailDto) {
+    const data = await this.authService.checkEmailExists(dto);
+    return { success: true, data };
+  }
 
   @Post('send-otp')
   @RateLimit({ max: 3, timeWindow: '1 minute' })

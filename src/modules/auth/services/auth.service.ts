@@ -73,6 +73,14 @@ export class AuthService {
     return { user: this.sanitizeUser(user) };
   }
 
+  // ─── CHECK EMAIL EXISTS ───────────────────────────────────────────────────
+
+  async checkEmailExists(dto: { email: string }): Promise<{ exists: boolean }> {
+    const { email } = dto;
+    const user = await this.authRepository.findUserByEmail(email);
+    return { exists: !!user };
+  }
+
   // ─── SEND OTP ─────────────────────────────────────────────────────────────
 
   async sendOtp(dto: SendOtpDto): Promise<{ message: string }> {
