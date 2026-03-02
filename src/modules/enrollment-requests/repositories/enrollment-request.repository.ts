@@ -73,4 +73,14 @@ export class EnrollmentRequestRepository {
       },
     });
   }
+
+  /**
+   * Update screenshot URL after file upload.
+   */
+  async updateScreenshotUrl(id: string, screenshotUrl: string) {
+    return this.prisma.enrollmentRequest.update({
+      where: { id },
+      data: { screenshotUrl },
+    });
+  }
 }

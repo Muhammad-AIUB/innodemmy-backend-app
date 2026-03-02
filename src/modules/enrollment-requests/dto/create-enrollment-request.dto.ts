@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsIn, IsNotEmpty, IsString, IsUrl, IsUUID } from 'class-validator';
+import { IsIn, IsNotEmpty, IsString, IsUUID } from 'class-validator';
+import { IsUrlOrPath } from '../../../common/validators/url-or-path.validator';
 
 export class CreateEnrollmentRequestDto {
   @ApiProperty({ description: 'Course ID to enroll in' })
@@ -29,6 +30,6 @@ export class CreateEnrollmentRequestDto {
   })
   @IsString()
   @IsNotEmpty()
-  @IsUrl({}, { message: 'screenshotUrl must be a valid URL' })
+  @IsUrlOrPath({ message: 'screenshotUrl must be a valid URL or path' })
   screenshotUrl: string;
 }

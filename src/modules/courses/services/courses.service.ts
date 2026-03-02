@@ -29,6 +29,7 @@ const ANALYTICS_CACHE_PREFIX = 'course-analytics:';
 const ANALYTICS_CACHE_TTL = 60_000;
 
 type PublicCourseResponse = {
+  id: string;
   title: string;
   slug: string;
   description: string;
@@ -45,7 +46,6 @@ type PublicCourseResponse = {
 };
 
 type AdminCourseResponse = PublicCourseResponse & {
-  id: string;
   status: CourseStatus;
   createdById: string;
   createdAt: Date;
@@ -683,6 +683,7 @@ export class CoursesService {
    */
   private mapPublicResponse(course: CourseListItem): PublicCourseResponse {
     return {
+      id: course.id,
       title: course.title,
       slug: course.slug,
       description: course.description,
@@ -701,7 +702,6 @@ export class CoursesService {
 
   private mapAdminResponse(course: CourseListItem): AdminCourseResponse {
     return {
-      id: course.id,
       ...this.mapPublicResponse(course),
       status: course.status,
       createdById: course.createdById,

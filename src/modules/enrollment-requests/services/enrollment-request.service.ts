@@ -66,6 +66,12 @@ export class EnrollmentRequestService {
     });
   }
 
+  // ─── 1b. Update screenshot URL after file upload ─────────────────────
+
+  async updateScreenshotUrl(id: string, screenshotUrl: string) {
+    return this.repo.updateScreenshotUrl(id, screenshotUrl);
+  }
+
   // ─── 2. ADMIN: LIST ENROLLMENT REQUESTS ─────────────────────────────────
 
   async findAll(status?: EnrollmentRequestStatus) {

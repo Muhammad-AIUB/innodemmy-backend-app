@@ -24,10 +24,10 @@ export class UploadController {
   /**
    * Upload image file
    * POST /api/v1/upload/image
+   * Accessible to all authenticated users (students for payment screenshots, admins for course banners)
    */
   @Post('image')
-  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  @UseInterceptors(AdminAuditInterceptor)
+  @Roles(UserRole.STUDENT, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Upload image file (max 5MB)' })
   async uploadImage(@Req() request: FastifyRequest) {
@@ -90,6 +90,7 @@ export class UploadController {
   /**
    * Upload video file
    * POST /api/v1/upload/video
+   * Restricted to admins only (for course content)
    */
   @Post('video')
   @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
