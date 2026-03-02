@@ -161,9 +161,9 @@ export class AuthController {
   @Get('users')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtGuard, RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List all users (SUPER_ADMIN only)' })
+  @ApiOperation({ summary: 'List all users (SUPER_ADMIN and ADMIN)' })
   @ApiResponse({ status: 200, description: 'Users fetched successfully.' })
   async listUsers(
     @Query('page') page?: string,
