@@ -32,4 +32,13 @@ export class WebinarRegistrationService {
   async findAllByWebinar(webinarId: string): Promise<WebinarRegistration[]> {
     return this.repo.findAllByWebinar(webinarId);
   }
+
+  async findAll(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    webinarId?: string;
+  }) {
+    return this.repo.findAll(params);
+  }
 }

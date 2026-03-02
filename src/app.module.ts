@@ -19,6 +19,7 @@ import { BackupModule } from './modules/backup/backup.module';
 import { EnrollmentRequestModule } from './modules/enrollment-requests/enrollment-request.module';
 import { WebinarRegistrationModule } from './modules/webinar-registrations/webinar-registration.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { UploadModule } from './modules/upload/upload.module';
     EnrollmentRequestModule,
     WebinarRegistrationModule,
     UploadModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

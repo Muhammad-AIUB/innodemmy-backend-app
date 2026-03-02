@@ -7,6 +7,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -45,6 +46,27 @@ export class WebinarRegistrationPublicController {
 @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
 export class WebinarRegistrationAdminController {
   constructor(private readonly service: WebinarRegistrationService) {}
+
+  /**
+   * ADMIN: List ALL registrations across all webinars (paginated).
+   * GET /api/v1/admin/webinars/registrations
+   */
+  @Get('registrations')
+  @ApiOperation({ summary: 'List all webinar registrations (admin)' })
+  async findAllRegistrations(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('webinarId') webinarId?: string,
+  ) {
+    const data = await this.service.findAll({
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      search,
+      webinarId,
+    });
+    return { success: true, data };
+  }
 
   /**
    * ADMIN: List registrations for a webinar.
