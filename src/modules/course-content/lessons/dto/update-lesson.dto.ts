@@ -5,11 +5,11 @@ import {
   IsEnum,
   IsOptional,
   IsString,
-  IsUrl,
   MaxLength,
 } from 'class-validator';
 import { LessonContentBlock } from './lesson-content-block.type';
 import { IsLessonContentBlocks } from './lesson-content.validator';
+import { IsUrlOrPath } from '../../../../common/validators/url-or-path.validator';
 
 export class UpdateLessonDto {
   @ApiPropertyOptional({ description: 'Updated lesson title' })
@@ -26,7 +26,7 @@ export class UpdateLessonDto {
   @ApiPropertyOptional({
     description: 'Updated video URL (VIDEO lessons only)',
   })
-  @IsUrl({}, { message: 'videoUrl must be a valid URL' })
+  @IsUrlOrPath({ message: 'videoUrl must be a valid URL or path' })
   @IsOptional()
   videoUrl?: string;
 

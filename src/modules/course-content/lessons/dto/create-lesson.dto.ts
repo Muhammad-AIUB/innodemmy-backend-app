@@ -6,12 +6,12 @@ import {
   IsArray,
   IsOptional,
   IsString,
-  IsUrl,
   MaxLength,
   ValidateIf,
 } from 'class-validator';
 import { LessonContentBlock } from './lesson-content-block.type';
 import { IsLessonContentBlocks } from './lesson-content.validator';
+import { IsUrlOrPath } from '../../../../common/validators/url-or-path.validator';
 
 export class CreateLessonDto {
   @ApiProperty({
@@ -34,7 +34,7 @@ export class CreateLessonDto {
     description: 'Video URL — required when type = VIDEO',
   })
   @ValidateIf((o: CreateLessonDto) => o.type === LessonType.VIDEO)
-  @IsUrl({}, { message: 'videoUrl must be a valid URL' })
+  @IsUrlOrPath({ message: 'videoUrl must be a valid URL or path' })
   @IsNotEmpty({ message: 'videoUrl is required for VIDEO lessons' })
   @IsOptional()
   videoUrl?: string;
