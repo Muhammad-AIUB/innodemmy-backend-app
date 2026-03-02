@@ -5,9 +5,12 @@ import {
 } from '@nestjs/platform-fastify';
 import rateLimit from '@fastify/rate-limit';
 import helmet from '@fastify/helmet';
+import multipart from '@fastify/multipart';
+import fastifyStatic from '@fastify/static';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { join } from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -20,6 +23,20 @@ async function bootstrap() {
 
   // Global route prefix
   app.setGlobalPrefix('api/v1');
+
+  // ─── MULTIPART SUPPORT (FILE UPLOADS) ─────────────────────────────────────
+  await app.register(multipart, {
+    limits: {
+      fileSize: 100 * 1024 * 1024, // 100MB max
+      files: 1, // Only 1 file per request
+    },
+  });
+
+  // ─── STATIC FILE SERVING ──────────────────────────────────────────────────
+  await app.register(fastifyStatic, {
+    root: join(process.cwd(), 'public'),
+    prefix: '/',
+  });
 
   // Global validation
   app.useGlobalPipes(

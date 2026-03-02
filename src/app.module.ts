@@ -18,6 +18,7 @@ import { ProgressModule } from './modules/progress/progress.module';
 import { BackupModule } from './modules/backup/backup.module';
 import { EnrollmentRequestModule } from './modules/enrollment-requests/enrollment-request.module';
 import { WebinarRegistrationModule } from './modules/webinar-registrations/webinar-registration.module';
+import { UploadModule } from './modules/upload/upload.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { WebinarRegistrationModule } from './modules/webinar-registrations/webin
     BackupModule,
     EnrollmentRequestModule,
     WebinarRegistrationModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],
