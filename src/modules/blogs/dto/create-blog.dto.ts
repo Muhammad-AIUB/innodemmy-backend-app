@@ -14,6 +14,8 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+import { BlogContentBlock } from '../types/blog-content-block.type';
+import { IsValidContentBlocks } from '../validators/is-valid-content-blocks.validator';
 
 export class CreateBlogDto {
   @ApiProperty({ example: 'How to Build Scalable NestJS Modules' })
@@ -44,6 +46,26 @@ export class CreateBlogDto {
   })
   @IsObject({ message: 'content must be a valid TipTap JSON object' })
   content: Prisma.InputJsonValue;
+
+  @ApiPropertyOptional({
+    description: 'Structured content blocks for the blog post',
+    example: [
+      { type: 'heading', value: 'Introduction' },
+      { type: 'text', value: 'This is the first paragraph.' },
+      { type: 'image', url: 'https://cdn.example.com/photo.jpg', alt: 'Photo' },
+      { type: 'quote', value: 'Knowledge is power.' },
+    ],
+  })
+  @IsOptional()
+  @IsArray({ message: 'contentBlocks must be an array' })
+  @ArrayMaxSize(200, {
+    message: 'contentBlocks must not contain more than 200 blocks',
+  })
+  @IsValidContentBlocks({
+    message:
+      'Each content block must have a valid type (text, image, heading, quote) and correct shape',
+  })
+  contentBlocks?: BlogContentBlock[];
 
   @ApiPropertyOptional({
     example: 'https://cdn.example.com/images/blog-banner.jpg',

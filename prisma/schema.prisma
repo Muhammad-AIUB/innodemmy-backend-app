@@ -206,12 +206,13 @@ model WebinarRegistration {
 //////////////////////////////////////////////////
 
 model Blog {
-  id           String     @id @default(uuid())
-  title        String
-  slug         String     @unique
-  excerpt      String?
-  content      Json
-  bannerImage  String?
+  id            String     @id @default(uuid())
+  title         String
+  slug          String     @unique
+  excerpt       String?
+  content       Json
+  contentBlocks Json?      @default("[]")
+  bannerImage   String?
   readDuration Int?
   publishedAt  DateTime?
   status       BlogStatus @default(DRAFT)

@@ -38,6 +38,7 @@ type PublicBlogDetail = {
   slug: string;
   excerpt: string | null;
   content: Prisma.JsonValue;
+  contentBlocks: Prisma.JsonValue;
   bannerImage: string | null;
   readDuration: number | null;
   publishedAt: Date | null;
@@ -120,6 +121,11 @@ export class BlogsService {
 
     if (dto.content !== undefined) {
       updateData.content = dto.content;
+    }
+
+    if (dto.contentBlocks !== undefined) {
+      updateData.contentBlocks =
+        dto.contentBlocks as unknown as Prisma.InputJsonValue;
     }
 
     if (dto.bannerImage !== undefined) {
@@ -320,6 +326,9 @@ export class BlogsService {
           slug,
           excerpt: dto.excerpt,
           content: dto.content,
+          contentBlocks: dto.contentBlocks
+            ? (dto.contentBlocks as unknown as Prisma.InputJsonValue)
+            : [],
           bannerImage: dto.bannerImage,
           readDuration: dto.readDuration,
           status: BlogStatus.DRAFT,
@@ -426,6 +435,7 @@ export class BlogsService {
       slug: blog.slug,
       excerpt: blog.excerpt,
       content: blog.content,
+      contentBlocks: blog.contentBlocks ?? [],
       bannerImage: blog.bannerImage,
       readDuration: blog.readDuration,
       publishedAt: blog.publishedAt,
