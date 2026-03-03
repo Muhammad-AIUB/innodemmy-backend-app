@@ -21,6 +21,7 @@ import { WebinarRegistrationModule } from './modules/webinar-registrations/webin
 import { UploadModule } from './modules/upload/upload.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { InstructorsModule } from './modules/instructors/instructors.module';
+import { CategoriesModule } from './modules/categories/categories.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { InstructorsModule } from './modules/instructors/instructors.module';
     UploadModule,
     DashboardModule,
     InstructorsModule,
+    CategoriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
