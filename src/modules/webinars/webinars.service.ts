@@ -257,6 +257,36 @@ export class WebinarsService {
       hasChanges = true;
     }
 
+    if (dto.image !== undefined && dto.image !== existing.image) {
+      updateData.image = dto.image;
+      hasChanges = true;
+    }
+
+    if (dto.videoUrl !== undefined && dto.videoUrl !== existing.videoUrl) {
+      updateData.videoUrl = dto.videoUrl;
+      hasChanges = true;
+    }
+
+    if (dto.time !== undefined && dto.time !== existing.time) {
+      updateData.time = dto.time;
+      hasChanges = true;
+    }
+
+    if (dto.category !== undefined && dto.category !== existing.category) {
+      updateData.category = dto.category;
+      hasChanges = true;
+    }
+
+    if (
+      dto.instructorId !== undefined &&
+      dto.instructorId !== existing.instructorId
+    ) {
+      updateData.instructorRef = dto.instructorId
+        ? { connect: { id: dto.instructorId } }
+        : { disconnect: true };
+      hasChanges = true;
+    }
+
     if (!hasChanges) {
       return this.mapAdminResponse(existing);
     }
